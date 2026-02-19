@@ -1,0 +1,13 @@
+# Fichiers de configuration
+config/database.php
+
+# Logs
+*.log
+
+# Système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.sublime-*
