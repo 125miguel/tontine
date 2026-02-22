@@ -87,6 +87,9 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                                     <a href="ouvrir_seance.php?id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
                                         <i class="bi bi-play-circle"></i> Séance
                                     </a>
+                                    <a href="../parametres/amendes.php?tontine_id=<?= $row['id'] ?>" class="btn btn-warning btn-sm">
+                                        <i class="bi bi-exclamation-triangle"></i> Amendes
+                                    </a>
                                 </div>
                             </div>
                         </div>
