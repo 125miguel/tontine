@@ -151,33 +151,33 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="container d-flex justify-content-center">
         <div class="card">
             <div class="card-header">
-                <h2>🔐 Connexion</h2>
+                <h2> Connexion</h2>
                 <p>Accédez à votre espace tontine</p>
             </div>
             <div class="card-body">
                 
                 <?php if($error): ?>
                     <div class="alert alert-danger">
-                        <strong>❌ Erreur :</strong> <?= htmlspecialchars($error) ?>
+                        <strong> Erreur :</strong> <?= htmlspecialchars($error) ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if(isset($_SESSION['success'])): ?>
                     <div class="alert alert-success">
-                        <strong>✅ Succès !</strong> <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                        <strong> Succès !</strong> <?= $_SESSION['success']; unset($_SESSION['success']); ?>
                     </div>
                 <?php endif; ?>
 
                 <form method="POST" action="">
                     <div class="mb-4">
-                        <label class="form-label">📧 Email</label>
+                        <label class="form-label"> Email</label>
                         <input type="email" name="email" class="form-control" 
                                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" 
                                placeholder="exemple@email.com" required>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">🔒 Mot de passe</label>
+                        <label class="form-label"> Mot de passe</label>
                         <input type="password" name="password" class="form-control" 
                                placeholder="••••••••" required>
                     </div>

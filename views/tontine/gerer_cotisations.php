@@ -192,16 +192,16 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 
                 <!-- Messages de notification -->
                 <?php if(isset($_GET['amende_manuelle']) && $_GET['amende_manuelle'] == 'ok'): ?>
-                    <div class="alert alert-success">✅ Amende manuelle appliquée avec succès !</div>
+                    <div class="alert alert-success"> Amende manuelle appliquée avec succès !</div>
                 <?php endif; ?>
                 
                 <?php if(isset($_GET['amende_erreur']) && $_GET['amende_erreur'] == 1): ?>
-                    <div class="alert alert-danger">❌ Montant invalide. Veuillez saisir un montant ou utiliser le montant par défaut.</div>
+                    <div class="alert alert-danger"> Montant invalide. Veuillez saisir un montant ou utiliser le montant par défaut.</div>
                 <?php endif; ?>
 
                 <div class="card">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0">💰 Gestion des cotisations</h4>
+                        <h4 class="mb-0"> Gestion des cotisations</h4>
                         <span class="badge bg-light text-dark">
                             Séance du <?= date('d/m/Y', strtotime($seance->date_seance)) ?>
                         </span>
@@ -311,12 +311,12 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                         <label class="form-label">Type d'amende</label>
                                         <select name="type_amende" class="form-control" id="type_amende" required onchange="chargerMontantDefaut()">
                                             <option value="">Choisir...</option>
-                                            <option value="absence">❌ Absence</option>
-                                            <option value="retard_reunion">⏰ Retard réunion</option>
-                                            <option value="telephone">📱 Téléphone</option>
-                                            <option value="dispute">💢 Dispute</option>
-                                            <option value="nourriture">🍗 Nourriture</option>
-                                            <option value="autre">📝 Autre</option>
+                                            <option value="absence"> Absence</option>
+                                            <option value="retard_reunion"> Retard réunion</option>
+                                            <option value="telephone"> Téléphone</option>
+                                            <option value="dispute"> Dispute</option>
+                                            <option value="nourriture"> Nourriture</option>
+                                            <option value="autre"> Autre</option>
                                         </select>
                                     </div>
                                     
@@ -392,7 +392,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
 
                         <?php if($nb_payes == $nb_total && $nb_total > 0): ?>
                             <div class="alert alert-success mt-3">
-                                <strong>✅ Tous les membres ont payé !</strong>
+                                <strong> Tous les membres ont payé !</strong>
                                 <p>Vous pouvez maintenant désigner le bénéficiaire.</p>
                                 <a href="designer_beneficiaire.php?seance_id=<?= $seance_id ?>" 
                                    class="btn btn-primary">

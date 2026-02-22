@@ -107,7 +107,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
             <div class="col-md-8 offset-md-2">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">📅 Ouvrir une séance pour "<?= htmlspecialchars($tontine->nom) ?>"</h4>
+                        <h4 class="mb-0"> Ouvrir une séance pour "<?= htmlspecialchars($tontine->nom) ?>"</h4>
                     </div>
                     <div class="card-body">
                         
@@ -121,7 +121,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
 
                         <?php if($seance_active && $seance_data): ?>
                             <div class="alert alert-info">
-                                <strong>✅ Séance active</strong><br>
+                                <strong> Séance active</strong><br>
                                 Date: <?= date('d/m/Y', strtotime($seance_data['date_seance'])) ?><br>
                                 <a href="gerer_cotisations.php?seance_id=<?= $seance_data['id'] ?>" class="btn btn-primary mt-2">
                                     Gérer les cotisations

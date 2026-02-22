@@ -189,7 +189,7 @@ if($tontinesMembre && $tontinesMembre->rowCount() > 0) {
         
         <!-- Message de bienvenue -->
         <div class="welcome-card">
-            <h3>👋 Bonjour, <?= htmlspecialchars($user->prenom) ?> !</h3>
+            <h3> Bonjour, <?= htmlspecialchars($user->prenom) ?> !</h3>
             <p class="mb-0">Bienvenue dans votre espace de gestion de tontine.</p>
         </div>
 
@@ -254,9 +254,9 @@ if($tontinesMembre && $tontinesMembre->rowCount() > 0) {
                             </div>
                             <div class="card-body">
                                 <p>
-                                    <strong>💰 Montant:</strong> <?= number_format($tontine['montant_cotisation'], 0, ',', ' ') ?> F<br>
-                                    <strong>🎯 Ton ordre:</strong> <?= $membreInfo['ordre_tour'] ?? 'Non défini' ?><br>
-                                    <strong>📅 Prochaine réunion:</strong> <?= date('d/m/Y', strtotime($tontine['prochaine_reunion'])) ?>
+                                    <strong> Montant:</strong> <?= number_format($tontine['montant_cotisation'], 0, ',', ' ') ?> F<br>
+                                    <strong> Ton ordre:</strong> <?= $membreInfo['ordre_tour'] ?? 'Non défini' ?><br>
+                                    <strong> Prochaine réunion:</strong> <?= date('d/m/Y', strtotime($tontine['prochaine_reunion'])) ?>
                                 </p>
                                 <a href="tontine/voir_mes_cotisations.php?tontine_id=<?= $tontine['id'] ?>" 
                                    class="btn btn-outline-primary">

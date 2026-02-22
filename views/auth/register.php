@@ -149,20 +149,20 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="col-md-8 col-lg-6">
                 <div class="card">
                     <div class="card-header">
-                        <h2>📝 Créer un compte</h2>
+                        <h2> Créer un compte</h2>
                         <p>Rejoignez votre tontine en ligne</p>
                     </div>
                     <div class="card-body">
                         
                         <?php if($error): ?>
                             <div class="alert alert-danger">
-                                <strong>❌ Erreur :</strong> <?= htmlspecialchars($error) ?>
+                                <strong> Erreur :</strong> <?= htmlspecialchars($error) ?>
                             </div>
                         <?php endif; ?>
                         
                         <?php if($success): ?>
                             <div class="alert alert-success">
-                                <strong>✅ Succès !</strong> <?= htmlspecialchars($success) ?>
+                                <strong> Succès !</strong> <?= htmlspecialchars($success) ?>
                             </div>
                         <?php endif; ?>
 
@@ -220,7 +220,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100">
-                                📝 S'inscrire
+                                 S'inscrire
                             </button>
                             
                             <p class="text-center mt-4 mb-0">

@@ -98,7 +98,7 @@ if(isset($_GET['add_user'])) {
             <div class="col-md-8 offset-md-2">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">➕ Ajouter des membres à "<?= htmlspecialchars($tontine->nom) ?>"</h4>
+                        <h4 class="mb-0"> Ajouter des membres à "<?= htmlspecialchars($tontine->nom) ?>"</h4>
                     </div>
                     <div class="card-body">
                         

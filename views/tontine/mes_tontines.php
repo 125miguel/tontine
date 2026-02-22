@@ -49,7 +49,7 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
 
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>📋 Mes tontines</h2>
+            <h2> Mes tontines</h2>
             <a href="create.php" class="btn btn-success">
                 <i class="bi bi-plus-circle"></i> Nouvelle tontine
             </a>
@@ -72,10 +72,10 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                             </div>
                             <div class="card-body">
                                 <p class="card-text">
-                                    <strong>💰 Montant:</strong> <?= number_format($row['montant_cotisation'], 0, ',', ' ') ?> FCFA<br>
-                                    <strong>📅 Réunion:</strong> <?= htmlspecialchars($row['jour_reunion']) ?><br>
-                                    <strong>👥 Membres:</strong> <?= $nbMembres ?><br>
-                                    <strong>📆 Prochaine réunion:</strong> <?= date('d/m/Y', strtotime($row['prochaine_reunion'])) ?>
+                                    <strong> Montant:</strong> <?= number_format($row['montant_cotisation'], 0, ',', ' ') ?> FCFA<br>
+                                    <strong> Réunion:</strong> <?= htmlspecialchars($row['jour_reunion']) ?><br>
+                                    <strong> Membres:</strong> <?= $nbMembres ?><br>
+                                    <strong> Prochaine réunion:</strong> <?= date('d/m/Y', strtotime($row['prochaine_reunion'])) ?>
                                 </p>
                                 <div class="d-flex justify-content-between">
                                     <a href="voir_membres.php?id=<?= $row['id'] ?>" class="btn btn-primary">

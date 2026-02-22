@@ -60,7 +60,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
     
-    $message = "✅ Règles d'amendes enregistrées avec succès !";
+    $message = " Règles d'amendes enregistrées avec succès !";
 }
 
 // Récupérer les règles existantes
@@ -104,7 +104,7 @@ foreach($regles as $r) {
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header bg-warning text-white">
-                        <h4 class="mb-0">⚙️ Configuration des amendes</h4>
+                        <h4 class="mb-0"> Configuration des amendes</h4>
                         <p class="mb-0">Tontine : <strong><?= htmlspecialchars($tontine->nom) ?></strong></p>
                     </div>
                     <div class="card-body">
@@ -120,7 +120,7 @@ foreach($regles as $r) {
                                 <div class="col-md-6 mb-4">
                                     <div class="card h-100">
                                         <div class="card-header bg-light">
-                                            <h5 class="mb-0">⏰ Retards</h5>
+                                            <h5 class="mb-0"> Retards</h5>
                                         </div>
                                         <div class="card-body">
                                             <div class="mb-3">
@@ -141,7 +141,7 @@ foreach($regles as $r) {
                                 <div class="col-md-6 mb-4">
                                     <div class="card h-100">
                                         <div class="card-header bg-light">
-                                            <h5 class="mb-0">❌ Absences</h5>
+                                            <h5 class="mb-0"> Absences</h5>
                                         </div>
                                         <div class="card-body">
                                             <div class="mb-3">
@@ -163,7 +163,7 @@ foreach($regles as $r) {
                                 <div class="col-md-6 mb-4">
                                     <div class="card h-100">
                                         <div class="card-header bg-light">
-                                            <h5 class="mb-0">📱 Comportement</h5>
+                                            <h5 class="mb-0"> Comportement</h5>
                                         </div>
                                         <div class="card-body">
                                             <div class="mb-3">
@@ -189,7 +189,7 @@ foreach($regles as $r) {
                                 <div class="col-md-6 mb-4">
                                     <div class="card h-100">
                                         <div class="card-header bg-light">
-                                            <h5 class="mb-0">📝 Autre</h5>
+                                            <h5 class="mb-0"> Autre</h5>
                                         </div>
                                         <div class="card-body">
                                             <div class="mb-3">

@@ -18,9 +18,9 @@ $database = new Database();
 $db = $database->getConnection();
 
 if($db) {
-    echo "✅ Connexion OK<br>";
+    echo " Connexion OK<br>";
 } else {
-    echo "❌ Connexion échouée<br>";
+    echo " Connexion échouée<br>";
     exit;
 }
 
@@ -36,12 +36,12 @@ $user->password = "password123";
 $user->role = "admin";
 
 if($user->create()) {
-    echo "✅ Utilisateur créé avec succès !<br>";
+    echo " Utilisateur créé avec succès !<br>";
     echo "Nom : " . $user->nom . "<br>";
     echo "Email : " . $user->email . "<br>";
     echo "Rôle : " . $user->role . "<br>";
 } else {
-    echo "❌ Erreur lors de la création<br>";
+    echo " Erreur lors de la création<br>";
 }
 
 // 3. Test de connexion
@@ -50,30 +50,30 @@ echo "<h3>3. Test de connexion :</h3>";
 $login = $user->login("marie@test.com", "password123");
 
 if($login) {
-    echo "✅ Connexion réussie !<br>";
+    echo " Connexion réussie !<br>";
     echo "Bienvenue " . $user->prenom . " " . $user->nom . "<br>";
 } else {
-    echo "❌ Échec de connexion<br>";
+    echo " Échec de connexion<br>";
 }
 
 // 4. Vérification si l'email existe
 echo "<h3>4. Test emailExists :</h3>";
 
 if($user->emailExists("marie@test.com")) {
-    echo "✅ L'email existe bien<br>";
+    echo " L'email existe bien<br>";
 } else {
-    echo "❌ L'email n'existe pas<br>";
+    echo " L'email n'existe pas<br>";
 }
 
 // 5. Récupération par ID
 echo "<h3>5. Test getById :</h3>";
 
 if($user->getById(1)) {
-    echo "✅ Utilisateur trouvé : " . $user->prenom . " " . $user->nom . "<br>";
+    echo " Utilisateur trouvé : " . $user->prenom . " " . $user->nom . "<br>";
 } else {
-    echo "❌ Utilisateur non trouvé<br>";
+    echo " Utilisateur non trouvé<br>";
 }
 
 echo "<hr>";
-echo "🎉 Tests terminés ! Vérifie dans phpMyAdmin que l'utilisateur a bien été créé.";
+echo " Tests terminés ! Vérifie dans phpMyAdmin que l'utilisateur a bien été créé.";
 ?>

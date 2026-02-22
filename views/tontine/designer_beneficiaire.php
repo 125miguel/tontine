@@ -138,14 +138,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
                 
                 <?php if(isset($success)): ?>
                     <div class="alert alert-success text-center">
-                        <h4>✅ <?= $success ?></h4>
+                        <h4> <?= $success ?></h4>
                         <p>Redirection vers la liste des tontines...</p>
                     </div>
                 <?php else: ?>
 
                 <div class="card mb-4">
                     <div class="card-header bg-success text-white">
-                        <h4 class="mb-0">🎯 Désigner le bénéficiaire du jour</h4>
+                        <h4 class="mb-0"> Désigner le bénéficiaire du jour</h4>
                     </div>
                     <div class="card-body text-center">
                         <h5>Total collecté pour cette séance</h5>
