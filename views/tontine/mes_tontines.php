@@ -71,7 +71,8 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                                 <h5 class="mb-0"><?= htmlspecialchars($row['nom']) ?></h5>
                             </div>
                             <div class="card-body">
-                                <p class="card-text">
+                               <p class="card-text">
+                                    <span class="badge bg-info mb-2"><?= $row['type_tontine'] ?></span><br>
                                     <strong> Montant:</strong> <?= number_format($row['montant_cotisation'], 0, ',', ' ') ?> FCFA<br>
                                     <strong> Réunion:</strong> <?= htmlspecialchars($row['jour_reunion']) ?><br>
                                     <strong> Membres:</strong> <?= $nbMembres ?><br>

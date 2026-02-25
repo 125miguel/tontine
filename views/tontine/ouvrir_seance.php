@@ -42,7 +42,7 @@ if($seance->getSeanceActive($tontine_id)) {
     $seance_active = true;
     $seance_data = [
         'id' => $seance->id,
-        'date_seance' => $seance->date_seance
+        'date_seance' => $seance->date_seance,
     ];
 }
 
@@ -50,6 +50,7 @@ if($seance->getSeanceActive($tontine_id)) {
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
     
     $date_seance = $_POST['date_seance'] ?? date('Y-m-d');
+    $nom_reunion = $_POST['nom_reunion'] ?? null;
     
     // Vérifier si une séance est déjà ouverte
     if($seance->aSeanceActive($tontine_id)) {
@@ -58,6 +59,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
         // Créer la séance
         $seance->tontine_id = $tontine_id;
         $seance->date_seance = $date_seance;
+        $seance->nom_reunion = $nom_reunion;
         
         if($seance->create()) {
             // Initialiser les cotisations pour tous les membres
@@ -68,7 +70,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
                 $seance_active = true;
                 $seance_data = [
                     'id' => $seance->id,
-                    'date_seance' => $seance->date_seance
+                    'date_seance' => $seance->date_seance,
+                    'nom_reunion' => $seance->nom_reunion
                 ];
             } else {
                 $error = "Erreur lors de l'initialisation des cotisations";
@@ -107,7 +110,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
             <div class="col-md-8 offset-md-2">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0"> Ouvrir une séance pour "<?= htmlspecialchars($tontine->nom) ?>"</h4>
+                        <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Ouvrir une séance pour "<?= htmlspecialchars($tontine->nom) ?>"</h4>
                     </div>
                     <div class="card-body">
                         
@@ -121,10 +124,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
 
                         <?php if($seance_active && $seance_data): ?>
                             <div class="alert alert-info">
-                                <strong> Séance active</strong><br>
+                                <strong><i class="bi bi-check-circle"></i> Séance active</strong><br>
+                                <?php if(!empty($seance_data['nom_reunion'])): ?>
+                                    <strong><?= htmlspecialchars($seance_data['nom_reunion']) ?></strong><br>
+                                <?php endif; ?>
                                 Date: <?= date('d/m/Y', strtotime($seance_data['date_seance'])) ?><br>
                                 <a href="gerer_cotisations.php?seance_id=<?= $seance_data['id'] ?>" class="btn btn-primary mt-2">
-                                    Gérer les cotisations
+                                    <i class="bi bi-pencil-square"></i> Gérer les cotisations
                                 </a>
                             </div>
                         <?php else: ?>
@@ -138,9 +144,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
                                 <div class="mb-3">
                                     <p><strong>Informations de la tontine :</strong></p>
                                     <ul>
-                                        <li>Montant cotisation: <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA</li>
-                                        <li>Nombre de membres: <?= $membreTontine->countMembres($tontine_id) ?></li>
-                                        <li>Total potentiel: <?= number_format($tontine->montant_cotisation * $membreTontine->countMembres($tontine_id), 0, ',', ' ') ?> FCFA</li>
+                                        <li> Montant cotisation: <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA</li>
+                                        <li> Nombre de membres: <?= $membreTontine->countMembres($tontine_id) ?></li>
+                                        <li> Total potentiel: <?= number_format($tontine->montant_cotisation * $membreTontine->countMembres($tontine_id), 0, ',', ' ') ?> FCFA</li>
                                     </ul>
                                 </div>
 

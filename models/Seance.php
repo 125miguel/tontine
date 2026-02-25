@@ -40,30 +40,29 @@ class Seance {
     }
 
     /**
- * Récupérer la séance active d'une tontine (non clôturée)
- * Retourne true si trouvée et remplit les propriétés, false sinon
- */
-public function getSeanceActive($tontine_id) {
-    $query = "SELECT * FROM " . $this->table . " 
-              WHERE tontine_id = :tontine_id AND est_cloturee = 0
-              ORDER BY date_seance DESC LIMIT 1";
-    
-    $stmt = $this->conn->prepare($query);
-    $stmt->bindParam(":tontine_id", $tontine_id);
-    $stmt->execute();
-    
-    if($stmt->rowCount() > 0) {
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $this->id = $row['id'];
-        $this->tontine_id = $row['tontine_id'];
-        $this->date_seance = $row['date_seance'];
-        $this->beneficiaire_id = $row['beneficiaire_id'];
-        $this->total_collecte = $row['total_collecte'];
-        $this->est_cloturee = $row['est_cloturee'];
-        return true;
+     * Récupérer la séance active d'une tontine (non clôturée)
+     */
+    public function getSeanceActive($tontine_id) {
+        $query = "SELECT * FROM " . $this->table . " 
+                  WHERE tontine_id = :tontine_id AND est_cloturee = 0
+                  ORDER BY date_seance DESC LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":tontine_id", $tontine_id);
+        $stmt->execute();
+        
+        if($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $this->id = $row['id'];
+            $this->tontine_id = $row['tontine_id'];
+            $this->date_seance = $row['date_seance'];
+            $this->beneficiaire_id = $row['beneficiaire_id'];
+            $this->total_collecte = $row['total_collecte'];
+            $this->est_cloturee = $row['est_cloturee'];
+            return true;
+        }
+        return false;
     }
-    return false;
-}
 
     /**
      * Récupérer toutes les séances d'une tontine

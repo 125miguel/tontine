@@ -32,15 +32,54 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($user->login($email, $password)) {
             // Connexion réussie !
             
-            // Stocker les infos dans la session
+            // Stocker les infos en session
             $_SESSION['user_id'] = $user->id;
             $_SESSION['user_nom'] = $user->nom . ' ' . $user->prenom;
-            $_SESSION['user_email'] = $user->email;
             $_SESSION['user_role'] = $user->role;
+            $_SESSION['user_email'] = $user->email;
             
-            // Rediriger vers le tableau de bord
-            header("Location: ../dashboard.php");
-            exit();
+            // Vérifier si c'est la première connexion
+            $query = "SELECT premiere_connexion FROM users WHERE id = :id";
+            $stmt = $db->prepare($query);
+            $stmt->execute(['id' => $user->id]);
+            $premiere = $stmt->fetch()['premiere_connexion'];
+            
+            if($premiere) {
+                // Rediriger vers la page de changement de mot de passe
+                header("Location: changer_mdp.php?first=1");
+                exit();
+            } else {
+                // Vérifier combien de tontines pour ce membre
+                if($user->role == 'membre') {
+                    $query = "SELECT COUNT(*) as nb FROM membre_tontine WHERE user_id = :uid AND est_actif = 1";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute(['uid' => $user->id]);
+                    $nb_tontines = $stmt->fetch()['nb'];
+                    
+                    if($nb_tontines > 1) {
+                        // Plusieurs tontines → choisir
+                        header("Location: choisir_tontine.php");
+                        exit();
+                    } elseif($nb_tontines == 1) {
+                        // Une seule tontine → l'activer
+                        $query = "SELECT tontine_id FROM membre_tontine WHERE user_id = :uid LIMIT 1";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute(['uid' => $user->id]);
+                        $t = $stmt->fetch();
+                        $_SESSION['tontine_active'] = $t['tontine_id'];
+                        header("Location: ../dashboard.php");
+                        exit();
+                    } else {
+                        // Aucune tontine
+                        header("Location: ../dashboard.php");
+                        exit();
+                    }
+                } else {
+                    // Admin → dashboard direct
+                    header("Location: ../dashboard.php");
+                    exit();
+                }
+            }
         } else {
             $error = "Email ou mot de passe incorrect";
         }

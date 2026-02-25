@@ -17,10 +17,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $nom = $_POST['nom'] ?? '';
     $description = $_POST['description'] ?? '';
+    $type_tontine = $_POST['type_tontine'] ?? 'principale';
     $montant = $_POST['montant'] ?? '';
     $periodicite = $_POST['periodicite'] ?? '';
     $jour_reunion = $_POST['jour_reunion'] ?? '';
     $prochaine_reunion = $_POST['prochaine_reunion'] ?? '';
+    
     
     if(empty($nom) || empty($montant) || empty($periodicite) || empty($jour_reunion) || empty($prochaine_reunion)) {
         $error = "Veuillez remplir tous les champs obligatoires";
@@ -31,11 +33,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tontine = new Tontine($db);
         $tontine->nom = $nom;
         $tontine->description = $description;
+        $tontine->type_tontine = $type_tontine;
         $tontine->montant_cotisation = $montant;
         $tontine->periodicite = $periodicite;
         $tontine->jour_reunion = $jour_reunion;
         $tontine->prochaine_reunion = $prochaine_reunion;
         $tontine->admin_id = $_SESSION['user_id'];
+        
         
         if($tontine->create()) {
             $success = "Tontine créée avec succès !";
@@ -94,6 +98,19 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="mb-3">
                                 <label class="form-label">Description</label>
                                 <textarea name="description" class="form-control" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Type de tontine</label>
+                                <select name="type_tontine" class="form-control" required>
+                                    <option value="principale"> Tontine principale</option>
+                                    <option value="anniversaire"> Anniversaire</option>
+                                    <option value="djangui"> Djangui</option>
+                                    <option value="solidarite"> Solidarité</option>
+                                    <option value="deuil"> Deuil</option>
+                                    <option value="investissement"> Investissement</option>
+                                    <option value="autre"> Autre</option>
+                                </select>
+                                <small class="text-muted">Choisissez le type de tontine</small>
                             </div>
 
                             <div class="mb-3">

@@ -202,9 +202,9 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 <div class="card">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h4 class="mb-0"> Gestion des cotisations</h4>
-                        <span class="badge bg-light text-dark">
-                            Séance du <?= date('d/m/Y', strtotime($seance->date_seance)) ?>
-                        </span>
+                       <span class="badge bg-light text-dark">
+                                Séance du <?= date('d/m/Y', strtotime($seance->date_seance)) ?>
+                       </span>
                     </div>
                     <div class="card-body">
                         
