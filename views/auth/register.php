@@ -1,27 +1,24 @@
 <?php
-// Démarrer la session pour les messages
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 
-// Inclure les fichiers nécessaires
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
 
 $error = '';
 $success = '';
 
-// Vérifier si le formulaire a été soumis
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
-    // Récupérer les données
     $nom = $_POST['nom'] ?? '';
     $prenom = $_POST['prenom'] ?? '';
     $email = $_POST['email'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
-    $role = $_POST['role'] ?? 'membre';
     
-    // Validation
     if(empty($nom) || empty($prenom) || empty($email) || empty($telephone) || empty($password)) {
         $error = "Tous les champs sont obligatoires";
     } elseif($password != $confirm_password) {
@@ -29,8 +26,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif(strlen($password) < 6) {
         $error = "Le mot de passe doit contenir au moins 6 caractères";
     } else {
-        // Tout est bon, on essaie d'inscrire
-        
         $database = new Database();
         $db = $database->getConnection();
         
@@ -40,17 +35,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($user->emailExists($email)) {
             $error = "Cet email est déjà utilisé";
         } else {
-            // Créer l'utilisateur
             $user->nom = $nom;
             $user->prenom = $prenom;
             $user->email = $email;
             $user->telephone = $telephone;
             $user->password = $password;
-            $user->role = $role;
+            $user->role = 'admin'; // ← MODIFICATION ICI : forcé à admin
             
             if($user->create()) {
-                $success = "Inscription réussie ! Vous pouvez vous connecter.";
-                // Vider le formulaire
+                $success = "Inscription réussie ! Vous pouvez maintenant créer vos tontines.";
                 $_POST = array();
             } else {
                 $error = "Erreur lors de l'inscription";
@@ -64,7 +57,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription - Tontine</title>
+    <title>Inscription Président - Tontine</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -80,39 +73,37 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             border: none;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
+            max-width: 500px;
+            width: 100%;
         }
         .card-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-align: center;
-            padding: 25px;
-            border-bottom: none;
+            padding: 30px 20px;
         }
         .card-header h2 {
             margin: 0;
             font-size: 28px;
-            font-weight: 600;
         }
         .card-header p {
             margin: 10px 0 0;
             opacity: 0.9;
-            font-size: 16px;
         }
         .card-body {
             padding: 40px;
             background: white;
         }
-        .form-control, .form-select {
+        .form-control {
             border-radius: 10px;
             border: 2px solid #e0e0e0;
-            padding: 12px 15px;
+            padding: 12px;
             font-size: 15px;
             transition: all 0.3s;
         }
-        .form-control:focus, .form-select:focus {
+        .form-control:focus {
             border-color: #667eea;
             box-shadow: none;
-            outline: none;
         }
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -122,6 +113,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-size: 16px;
             font-weight: 600;
             transition: all 0.3s;
+            width: 100%;
         }
         .btn-primary:hover {
             transform: translateY(-2px);
@@ -138,35 +130,47 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #333;
             margin-bottom: 8px;
         }
-        .text-muted {
-            color: #999 !important;
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-link a:hover {
+            color: #764ba2;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
+            <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h2> Créer un compte</h2>
-                        <p>Rejoignez votre tontine en ligne</p>
+                        <h2>Inscription Président</h2>
+                        <p>Créez votre compte pour gérer vos tontines</p>
                     </div>
                     <div class="card-body">
                         
                         <?php if($error): ?>
                             <div class="alert alert-danger">
-                                <strong> Erreur :</strong> <?= htmlspecialchars($error) ?>
+                                <strong>Erreur :</strong> <?= htmlspecialchars($error) ?>
                             </div>
                         <?php endif; ?>
                         
                         <?php if($success): ?>
                             <div class="alert alert-success">
-                                <strong> Succès !</strong> <?= htmlspecialchars($success) ?>
+                                <strong>Succès !</strong> <?= htmlspecialchars($success) ?>
                             </div>
                         <?php endif; ?>
 
-                        <form method="POST" action="">
+                        <form method="POST">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Nom</label>
@@ -194,7 +198,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <input type="tel" name="telephone" class="form-control" 
                                        value="<?= htmlspecialchars($_POST['telephone'] ?? '') ?>" 
                                        placeholder="6XXXXXXXX" required>
-                                <small class="text-muted">Format: 691234567</small>
                             </div>
 
                             <div class="row">
@@ -202,7 +205,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <label class="form-label">Mot de passe</label>
                                     <input type="password" name="password" class="form-control" 
                                            placeholder="••••••••" required>
-                                    <small class="text-muted">Minimum 6 caractères</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Confirmer</label>
@@ -211,24 +213,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 </div>
                             </div>
 
-                            <div class="mb-4">
-                                <label class="form-label">Je suis</label>
-                                <select name="role" class="form-select">
-                                    <option value="membre" <?= ($_POST['role'] ?? '') == 'membre' ? 'selected' : '' ?>>👤 Membre de tontine</option>
-                                    <option value="admin" <?= ($_POST['role'] ?? '') == 'admin' ? 'selected' : '' ?>>👑 Président de tontine</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">
-                                 S'inscrire
+                            <button type="submit" class="btn btn-primary">
+                                S'inscrire
                             </button>
                             
-                            <p class="text-center mt-4 mb-0">
-                                Déjà un compte ? 
-                                <a href="login.php" class="text-decoration-none" style="color: #667eea;">
-                                    Connectez-vous ici
-                                </a>
-                            </p>
+                            <div class="login-link">
+                                Déjà un compte ? <a href="login.php">Connectez-vous ici</a>
+                            </div>
                         </form>
                     </div>
                 </div>

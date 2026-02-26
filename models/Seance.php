@@ -134,6 +134,43 @@ class Seance {
         
         return $stmt->execute();
     }
+    /**
+     * Récupérer les notes d'une séance
+     */
+    public function getNotes($seance_id) {
+        $query = "SELECT notes FROM notes_seance WHERE seance_id = :seance_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['seance_id' => $seance_id]);
+        
+        if($stmt->rowCount() > 0) {
+            return $stmt->fetch()['notes'];
+        }
+        return '';
+    }
+
+    /**
+     * Sauvegarder les notes d'une séance
+     */
+    public function saveNotes($seance_id, $notes) {
+        // Vérifier si des notes existent déjà
+        $query = "SELECT id FROM notes_seance WHERE seance_id = :seance_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['seance_id' => $seance_id]);
+        
+        if($stmt->rowCount() > 0) {
+            // Mettre à jour
+            $query = "UPDATE notes_seance SET notes = :notes WHERE seance_id = :seance_id";
+        } else {
+            // Insérer
+            $query = "INSERT INTO notes_seance (seance_id, notes) VALUES (:seance_id, :notes)";
+        }
+        
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            'seance_id' => $seance_id,
+            'notes' => $notes
+        ]);
+    }
 
     /**
      * Vérifier si une tontine a une séance active

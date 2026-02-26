@@ -193,6 +193,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h2> Connexion</h2>
                 <p>Accédez à votre espace tontine</p>
             </div>
+            <div class="text-center mt-3">
+                <a href="mot_de_passe_oublie.php">Mot de passe oublié ?</a>
+            </div>
             <div class="card-body">
                 
                 <?php if($error): ?>

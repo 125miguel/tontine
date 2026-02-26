@@ -72,19 +72,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
     if(!$membre_tontine_id) {
         $error = "Veuillez sélectionner un bénéficiaire";
     } else {
-        // Désigner le bénéficiaire
+       // Désigner le bénéficiaire (sans clôturer)
         if($seance->setBeneficiaire($seance_id, $membre_tontine_id)) {
-            // Clôturer la séance
-            if($seance->cloturer($seance_id, $total_collecte)) {
-                $success = "Séance clôturée avec succès ! " . htmlspecialchars($_POST['beneficiaire_nom']) . " est le bénéficiaire.";
-                
-                // Rediriger vers la page des séances après 3 secondes
-                header("refresh:3;url=mes_tontines.php");
-            } else {
-                $error = "Erreur lors de la clôture de la séance";
-            }
-        } else {
-            $error = "Erreur lors de la désignation du bénéficiaire";
+            $success = " Bénéficiaire désigné avec succès : " . htmlspecialchars($_POST['beneficiaire_nom']);
+            header("refresh:2;url=rapport_seance.php?seance_id=" . $seance_id);
+            exit();
         }
     }
 }

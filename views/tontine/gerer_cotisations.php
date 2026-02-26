@@ -271,6 +271,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                                        onclick="return confirm('Marquer comme retard ?')">
                                                         <i class="bi bi-clock"></i> Retard
                                                     </a>
+                                                    
                                                 <?php else: ?>
                                                     <span class="text-muted">✓ Payé</span>
                                                 <?php endif; ?>
@@ -412,6 +413,9 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                             <a href="designer_beneficiaire.php?seance_id=<?= $seance_id ?>" 
                                class="btn btn-warning">
                                 <i class="bi bi-trophy"></i> Désigner le bénéficiaire (même avec des impayés)
+                            </a>
+                            <a href="rapport_seance.php?seance_id=<?= $seance_id ?>" class="btn btn-info btn-sm">
+                                <i class="bi bi-file-text"></i> Rapport
                             </a>
                         </div>
 
