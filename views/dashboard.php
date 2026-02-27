@@ -115,7 +115,7 @@ if($userRole == 'admin') {
     $queryMembres = "SELECT COUNT(DISTINCT mt.id) as total 
                      FROM membre_tontine mt
                      JOIN tontines t ON mt.tontine_id = t.id
-                     WHERE t.admin_id = :aid";
+                     WHERE t.admin_id = :aid AND mt.est_actif = 1";
     $stmtMembres = $db->prepare($queryMembres);
     $stmtMembres->execute(['aid' => $userId]);
     $statsPresident['membres'] = $stmtMembres->fetch()['total'];
@@ -157,7 +157,7 @@ if($userRole == 'admin') {
                             JOIN users u ON mt.user_id = u.id
                             JOIN seances s ON a.seance_id = s.id
                             JOIN tontines t ON s.tontine_id = t.id
-                            WHERE t.admin_id = :aid AND a.est_paye = 0
+                            WHERE t.admin_id = :aid AND a.est_paye = 0 AND mt.est_actif = 1
                             ORDER BY a.date_application DESC";
     $stmtMembresAmendes = $db->prepare($queryMembresAmendes);
     $stmtMembresAmendes->execute(['aid' => $userId]);

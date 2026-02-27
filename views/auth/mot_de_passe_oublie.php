@@ -7,6 +7,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/PasswordReset.php';
+require_once __DIR__ . '/../../helpers/mail_helper.php';
 
 $message = '';
 $error = '';
@@ -28,20 +29,54 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($stmt->rowCount() > 0) {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Créer un token
+            // Créer un code
             $passwordReset = new PasswordReset($db);
-            $token = $passwordReset->createToken($user['id']);
+            $code = $passwordReset->createCode($user['id']);
             
-            if($token) {
-                // Ici, tu enverras un email avec le lien
-                // Pour l'instant, on affiche juste le lien (à des fins de test)
-                $reset_link = "http://localhost/tontine/views/auth/reset_mot_de_passe.php?token=" . $token;
-                $message = "Un email a été envoyé à $email avec les instructions.";
+            if($code) {
+                // Envoyer l'email
+                $sujet = "Code de réinitialisation - Tontine";
+                $message_email = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
+                        .code { font-size: 32px; font-weight: bold; color: #667eea; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 10px; margin: 20px 0; }
+                        .footer { text-align: center; color: #999; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2>Réinitialisation de mot de passe</h2>
+                        </div>
+                        <div class='content'>
+                            <p>Bonjour,</p>
+                            <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+                            <p>Voici votre code de validation :</p>
+                            <div class='code'>$code</div>
+                            <p>Ce code est valable 15 minutes.</p>
+                            <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+                        </div>
+                        <div class='footer'>
+                            <p>© 2024 Tontine App. Tous droits réservés.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                ";
                 
-                // En mode test, on affiche le lien (à supprimer en production)
-                $debug_link = $reset_link;
+                if(envoyerEmail($email, $sujet, $message_email)) {
+                    $_SESSION['reset_email'] = $email;
+                    header("Location: saisir_code.php");
+                    exit();
+                } else {
+                    $error = "Erreur lors de l'envoi de l'email. Veuillez réessayer.";
+                }
             } else {
-                $error = "Erreur lors de la génération du token";
+                $error = "Erreur lors de la génération du code";
             }
         } else {
             $error = "Aucun compte trouvé avec cet email";
@@ -99,7 +134,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="card">
             <div class="card-header">
                 <h2>Mot de passe oublié</h2>
-                <p class="mb-0">Saisissez votre email pour réinitialiser votre mot de passe</p>
+                <p class="mb-0">Saisissez votre email pour recevoir un code</p>
             </div>
             <div class="card-body">
                 
@@ -108,13 +143,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <?php endif; ?>
                 
                 <?php if($message): ?>
-                    <div class="alert alert-success">
-                        <?= htmlspecialchars($message) ?>
-                        <?php if(isset($debug_link)): ?>
-                            <hr>
-                            <small>Lien de test : <a href="<?= $debug_link ?>"><?= $debug_link ?></a></small>
-                        <?php endif; ?>
-                    </div>
+                    <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
                 <?php endif; ?>
 
                 <form method="POST">
@@ -125,7 +154,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
-                        Envoyer les instructions
+                        Envoyer le code
                     </button>
                     
                     <div class="text-center mt-3">

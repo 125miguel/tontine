@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 
 if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
@@ -9,6 +12,9 @@ if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Tontine.php';
 require_once __DIR__ . '/../../models/MembreTontine.php';
+
+$retire = $_GET['retire'] ?? 0;
+$error = $_GET['error'] ?? 0;
 
 $database = new Database();
 $db = $database->getConnection();
@@ -52,8 +58,18 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
     </nav>
 
     <div class="container mt-5">
+        
+        <!-- Messages de confirmation -->
+        <?php if($retire == 1): ?>
+            <div class="alert alert-success">Membre retiré avec succès !</div>
+        <?php endif; ?>
+
+        <?php if($error == 1): ?>
+            <div class="alert alert-danger">Erreur lors du retrait du membre.</div>
+        <?php endif; ?>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>👥 Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
+            <h2><i class="bi bi-people"></i> Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
             <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="btn btn-success">
                 <i class="bi bi-person-plus"></i> Ajouter un membre
             </a>
@@ -61,8 +77,8 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
 
         <?php if($membres->rowCount() == 0): ?>
             <div class="alert alert-info">
-                Aucun membre dans cette tontine pour le moment.
-                <a href="ajouter_membre.php?id=<?= $tontine_id ?>">Ajouter votre premier membre</a>
+                <i class="bi bi-info-circle"></i> Aucun membre actif dans cette tontine pour le moment.
+                <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="alert-link">Ajouter votre premier membre</a>
             </div>
         <?php else: ?>
             <div class="card">
@@ -98,17 +114,19 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
                                         <?php if($m['est_actif']): ?>
                                             <span class="badge bg-success">Actif</span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary">Inactif</span>
+                                            <span class="badge bg-secondary">Retiré</span>
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-md-2">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" title="Changer l'ordre">
-                                            <i class="bi bi-arrow-up-down"></i>
-                                        </a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" title="Retirer"
-                                           onclick="return confirm('Retirer ce membre de la tontine ?')">
-                                            <i class="bi bi-person-x"></i>
-                                        </a>
+                                        <?php if($m['est_actif']): ?>
+                                            <a href="retirer_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 
+                                               class="btn btn-sm btn-danger"
+                                               onclick="return confirm('Retirer <?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?> de la tontine ?\nSon historique sera conservé.')">
+                                                <i class="bi bi-person-x"></i> Retirer
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -119,12 +137,14 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
 
             <div class="mt-4">
                 <p class="text-muted">
-                    <strong>Total membres:</strong> <?= $membres->rowCount() ?><br>
-                    <strong>Montant cotisation:</strong> <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA<br>
-                    <strong>Total par réunion:</strong> <?= number_format($tontine->montant_cotisation * $membres->rowCount(), 0, ',', ' ') ?> FCFA
+                    <strong><i class="bi bi-people"></i> Total membres actifs:</strong> <?= $membres->rowCount() ?><br>
+                    <strong><i class="bi bi-cash-stack"></i> Montant cotisation:</strong> <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA<br>
+                    <strong><i class="bi bi-calculator"></i> Total par réunion:</strong> <?= number_format($tontine->montant_cotisation * $membres->rowCount(), 0, ',', ' ') ?> FCFA
                 </p>
             </div>
         <?php endif; ?>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

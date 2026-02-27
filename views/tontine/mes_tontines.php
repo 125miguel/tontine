@@ -14,6 +14,9 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Tontine.php';
 require_once __DIR__ . '/../../models/MembreTontine.php';
 
+$supprime = $_GET['supprime'] ?? 0;
+$error = $_GET['error'] ?? 0;
+
 // ... reste du code
 $database = new Database();
 $db = $database->getConnection();
@@ -54,6 +57,13 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                 <i class="bi bi-plus-circle"></i> Nouvelle tontine
             </a>
         </div>
+        <?php if($supprime == 1): ?>
+            <div class="alert alert-success">Tontine supprimée avec succès !</div>
+        <?php endif; ?>
+
+        <?php if($error == 1): ?>
+            <div class="alert alert-danger">Erreur lors de la suppression.</div>
+        <?php endif; ?>
 
         <?php if($stmt->rowCount() == 0): ?>
             <div class="alert alert-info">
@@ -90,6 +100,11 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                                     </a>
                                     <a href="../parametres/amendes.php?tontine_id=<?= $row['id'] ?>" class="btn btn-warning btn-sm">
                                         <i class="bi bi-exclamation-triangle"></i> Amendes
+                                    </a>
+                                    <a href="supprimer_tontine.php?id=<?= $row['id'] ?>" 
+                                    class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cette tontine ?\nToutes les données (membres, séances, cotisations, amendes) seront perdues.')">
+                                        <i class="bi bi-trash"></i> Supprimer
                                     </a>
                                 </div>
                             </div>
