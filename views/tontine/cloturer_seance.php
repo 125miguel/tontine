@@ -44,6 +44,9 @@ $total_collecte = $cotisation->calculerTotalSeance($seance_id);
 
 // Clôturer la séance
 if($seance->cloturer($seance_id, $total_collecte)) {
+// Mettre à jour la prochaine réunion de la tontine
+    $tontine->updateProchaineReunion();
+    
     header("Location: rapport_seance.php?seance_id=" . $seance_id . "&cloturee=1");
 } else {
     header("Location: rapport_seance.php?seance_id=" . $seance_id . "&error=1");

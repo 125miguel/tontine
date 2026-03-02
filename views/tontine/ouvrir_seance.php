@@ -142,12 +142,20 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
                                 </div>
 
                                 <div class="mb-3">
-                                    <p><strong>Informations de la tontine :</strong></p>
-                                    <ul>
-                                        <li> Montant cotisation: <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA</li>
-                                        <li> Nombre de membres: <?= $membreTontine->countMembres($tontine_id) ?></li>
-                                        <li> Total potentiel: <?= number_format($tontine->montant_cotisation * $membreTontine->countMembres($tontine_id), 0, ',', ' ') ?> FCFA</li>
-                                    </ul>
+                                    <label class="form-label">Date de la séance</label>
+                                    <input type="date" name="date_seance" class="form-control" 
+                                        value="<?= date('Y-m-d') ?>" required>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i> 
+                                        Après clôture, la prochaine réunion sera automatiquement calculée selon la périodicité.
+                                        <?php if($tontine->periodicite == 'hebdomadaire'): ?>
+                                            (Prochaine : +7 jours)
+                                        <?php elseif($tontine->periodicite == 'mensuel'): ?>
+                                            (Prochaine : +1 mois)
+                                        <?php elseif($tontine->periodicite == 'journalier'): ?>
+                                            (Prochaine : +1 jour)
+                                        <?php endif; ?>
+                                    </small>
                                 </div>
 
                                 <button type="submit" name="ouvrir_seance" class="btn btn-success w-100">

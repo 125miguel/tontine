@@ -106,6 +106,9 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                                     onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cette tontine ?\nToutes les données (membres, séances, cotisations, amendes) seront perdues.')">
                                         <i class="bi bi-trash"></i> Supprimer
                                     </a>
+                                    <a href="../parametres/rappels.php?tontine_id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
+                                        <i class="bi bi-bell"></i> Rappels
+                                    </a>
                                 </div>
                             </div>
                         </div>

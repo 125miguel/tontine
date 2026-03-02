@@ -155,5 +155,58 @@ public function create() {
         }
         return false;
     }
+    /**
+     * Calculer la prochaine date de réunion en fonction de la périodicité
+     * @param string $date_reference Date de référence (optionnelle)
+     * @return string Date au format Y-m-d
+     */
+    public function calculerProchaineReunion($date_reference = null) {
+        // Si aucune date de référence, utiliser la prochaine réunion ou la date du jour
+        if(!$date_reference) {
+            $date_reference = $this->prochaine_reunion ?? date('Y-m-d');
+        }
+        
+        // Calcul selon la périodicité
+        switch($this->periodicite) {
+            case 'journalier':
+                return date('Y-m-d', strtotime($date_reference . ' +1 day'));
+                
+            case 'hebdomadaire':
+                return date('Y-m-d', strtotime($date_reference . ' +7 days'));
+                
+            case 'mensuel':
+                // Gestion spéciale pour les mois (ex: 31 janvier + 1 mois = 28 février)
+                $date = new DateTime($date_reference);
+                $date->modify('+1 month');
+                return $date->format('Y-m-d');
+                
+            default:
+                // Par défaut, on ajoute 7 jours
+                return date('Y-m-d', strtotime($date_reference . ' +7 days'));
+        }
+    }
+
+    /**
+     * Mettre à jour la prochaine réunion dans la base de données
+     * @return bool Succès ou échec
+     */
+    public function updateProchaineReunion() {
+        // Calculer la nouvelle date
+        $nouvelle_date = $this->calculerProchaineReunion();
+        
+        // Mettre à jour l'objet
+        $this->prochaine_reunion = $nouvelle_date;
+        
+        // Mettre à jour la base
+        $query = "UPDATE " . $this->table . " 
+                SET prochaine_reunion = :prochaine_reunion 
+                WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            'prochaine_reunion' => $this->prochaine_reunion,
+            'id' => $this->id
+        ]);
+    }
 }
 ?>
