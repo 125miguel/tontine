@@ -42,10 +42,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user->password = $password;
             $user->role = 'admin'; // ← MODIFICATION ICI : forcé à admin
             
-            if($user->create()) {
-                $success = "Inscription réussie ! Vous pouvez maintenant créer vos tontines.";
-                $_POST = array();
-            } else {
+           if($user->create()) {
+            $_SESSION['register_success'] = "Inscription réussie ! Connectez-vous avec vos identifiants.";
+            header("Location: login.php");
+            exit();
+            }
+             else {
                 $error = "Erreur lors de l'inscription";
             }
         }

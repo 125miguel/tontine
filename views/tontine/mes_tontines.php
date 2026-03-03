@@ -1,4 +1,5 @@
 <?php
+$created = $_GET['created'] ?? 0;
 // ACTIVER L'AFFICHAGE DES ERREURS (ajoute ces 2 lignes)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -57,6 +58,11 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                 <i class="bi bi-plus-circle"></i> Nouvelle tontine
             </a>
         </div>
+        <?php if(isset($_SESSION['tontine_created'])): ?>
+            <div class="alert alert-success"><?= $_SESSION['tontine_created'] ?></div>
+            <?php unset($_SESSION['tontine_created']); ?>
+        <?php endif; ?>
+        
         <?php if($supprime == 1): ?>
             <div class="alert alert-success">Tontine supprimée avec succès !</div>
         <?php endif; ?>

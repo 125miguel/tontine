@@ -41,8 +41,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tontine->admin_id = $_SESSION['user_id'];
         
         
-        if($tontine->create()) {
-            $success = "Tontine créée avec succès !";
+       if($tontine->create()) {
+            $_SESSION['tontine_created'] = "Tontine créée avec succès !";
+            header("Location: mes_tontines.php");
+            exit();
+        
         } else {
             $error = "Erreur lors de la création";
         }

@@ -44,10 +44,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute(['id' => $user->id]);
             $premiere = $stmt->fetch()['premiere_connexion'];
             
-            if($premiere) {
-                // Rediriger vers la page de changement de mot de passe
+            if($premiere && $user->role == 'membre') {
+                // Seuls les membres sont forcés de changer leur mot de passe
                 header("Location: changer_mdp.php?first=1");
                 exit();
+            // Les admins vont directement au dashboard
             } else {
                 // Vérifier combien de tontines pour ce membre
                 if($user->role == 'membre') {
@@ -187,6 +188,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
+    <?php if(isset($_SESSION['register_success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> <?= $_SESSION['register_success'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php unset($_SESSION['register_success']); ?>
+    <?php endif; ?>
     <div class="container d-flex justify-content-center">
         <div class="card">
             <div class="card-header">
