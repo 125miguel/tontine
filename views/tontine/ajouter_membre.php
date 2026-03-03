@@ -52,6 +52,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
     $prenom = $_POST['prenom'] ?? '';
     $email = $_POST['email'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
+    $adresse = $_POST['adresse'] ?? '';
     
     if(empty($nom) || empty($prenom) || empty($email) || empty($telephone)) {
         $error = "Tous les champs sont obligatoires";
@@ -69,14 +70,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
             
             // Créer l'utilisateur
-            $query = "INSERT INTO users (nom, prenom, email, telephone, password, role, premiere_connexion) 
-                      VALUES (:nom, :prenom, :email, :telephone, :password, 'membre', 1)";
+            $query = "INSERT INTO users (nom, prenom, email, telephone, adresse, password, role, premiere_connexion) 
+                      VALUES (:nom, :prenom, :email, :telephone, :adresse, :password, 'membre', 1)";
             $stmt = $db->prepare($query);
             $stmt->execute([
                 'nom' => $nom,
                 'prenom' => $prenom,
                 'email' => $email,
                 'telephone' => $telephone,
+                'adresse' => $adresse,
                 'password' => $hashed
             ]);
             
@@ -281,6 +283,10 @@ if(!empty($search)) {
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">Téléphone</label>
                                                     <input type="tel" name="telephone" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Adresse / Quartier</label>
+                                                    <input type="text" name="adresse" class="form-control" placeholder="Ex: Bonanjo, Douala">
                                                 </div>
                                                 <div class="col-12">
                                                     <button type="submit" class="btn btn-success w-100">

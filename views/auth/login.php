@@ -17,10 +17,10 @@ if(isset($_SESSION['user_id'])) {
 // Vérifier si le formulaire a été soumis
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
-    $email = $_POST['email'] ?? '';
+    $identifiant = $_POST['identifiant'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if(empty($email) || empty($password)) {
+    if(empty($identifiant) || empty($password)) {
         $error = "Veuillez remplir tous les champs";
     } else {
         // Tentative de connexion
@@ -28,8 +28,18 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $db = $database->getConnection();
         
         $user = new User($db);
+        $logged = false;
         
-        if($user->login($email, $password)) {
+        // Détecter si c'est un email ou un téléphone
+        if(filter_var($identifiant, FILTER_VALIDATE_EMAIL)) {
+            // C'est un email
+            $logged = $user->login($identifiant, $password);
+        } else {
+            // C'est un téléphone (on suppose)
+            $logged = $user->loginByPhone($identifiant, $password);
+        }
+        
+        if($logged) {
             // Connexion réussie !
             
             // Stocker les infos en session
@@ -37,52 +47,41 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_nom'] = $user->nom . ' ' . $user->prenom;
             $_SESSION['user_role'] = $user->role;
             $_SESSION['user_email'] = $user->email;
+            $_SESSION['user_telephone'] = $user->telephone;
             
-            // Vérifier si c'est la première connexion
-            $query = "SELECT premiere_connexion FROM users WHERE id = :id";
-            $stmt = $db->prepare($query);
-            $stmt->execute(['id' => $user->id]);
-            $premiere = $stmt->fetch()['premiere_connexion'];
-            
-            if($premiere && $user->role == 'membre') {
-                // Seuls les membres sont forcés de changer leur mot de passe
+            // Vérifier si c'est la première connexion (pour les membres seulement)
+            if($user->role == 'membre' && $user->premiere_connexion) {
                 header("Location: changer_mdp.php?first=1");
                 exit();
-            // Les admins vont directement au dashboard
-            } else {
+            } elseif($user->role == 'membre') {
                 // Vérifier combien de tontines pour ce membre
-                if($user->role == 'membre') {
-                    $query = "SELECT COUNT(*) as nb FROM membre_tontine WHERE user_id = :uid AND est_actif = 1";
+                $query = "SELECT COUNT(*) as nb FROM membre_tontine WHERE user_id = :uid AND est_actif = 1";
+                $stmt = $db->prepare($query);
+                $stmt->execute(['uid' => $user->id]);
+                $nb_tontines = $stmt->fetch()['nb'];
+                
+                if($nb_tontines > 1) {
+                    header("Location: choisir_tontine.php");
+                    exit();
+                } elseif($nb_tontines == 1) {
+                    $query = "SELECT tontine_id FROM membre_tontine WHERE user_id = :uid LIMIT 1";
                     $stmt = $db->prepare($query);
                     $stmt->execute(['uid' => $user->id]);
-                    $nb_tontines = $stmt->fetch()['nb'];
-                    
-                    if($nb_tontines > 1) {
-                        // Plusieurs tontines → choisir
-                        header("Location: choisir_tontine.php");
-                        exit();
-                    } elseif($nb_tontines == 1) {
-                        // Une seule tontine → l'activer
-                        $query = "SELECT tontine_id FROM membre_tontine WHERE user_id = :uid LIMIT 1";
-                        $stmt = $db->prepare($query);
-                        $stmt->execute(['uid' => $user->id]);
-                        $t = $stmt->fetch();
-                        $_SESSION['tontine_active'] = $t['tontine_id'];
-                        header("Location: ../dashboard.php");
-                        exit();
-                    } else {
-                        // Aucune tontine
-                        header("Location: ../dashboard.php");
-                        exit();
-                    }
+                    $t = $stmt->fetch();
+                    $_SESSION['tontine_active'] = $t['tontine_id'];
+                    header("Location: ../dashboard.php");
+                    exit();
                 } else {
-                    // Admin → dashboard direct
                     header("Location: ../dashboard.php");
                     exit();
                 }
+            } else {
+                // Admin → dashboard direct
+                header("Location: ../dashboard.php");
+                exit();
             }
         } else {
-            $error = "Email ou mot de passe incorrect";
+            $error = "Identifiant ou mot de passe incorrect";
         }
     }
 }
@@ -220,10 +219,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <form method="POST" action="">
                     <div class="mb-4">
-                        <label class="form-label"> Email</label>
-                        <input type="email" name="email" class="form-control" 
-                               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" 
-                               placeholder="exemple@email.com" required>
+                        <label class="form-label">Email ou Téléphone</label>
+                        <input type="text" name="identifiant" class="form-control" 
+                            value="<?= htmlspecialchars($_POST['identifiant'] ?? '') ?>" 
+                            placeholder="exemple@email.com ou 6XXXXXXXX" required>
+                        <small class="text-muted">Connectez-vous avec votre email ou votre numéro de téléphone</small>
                     </div>
 
                     <div class="mb-4">

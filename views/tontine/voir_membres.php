@@ -15,6 +15,7 @@ require_once __DIR__ . '/../../models/MembreTontine.php';
 
 $retire = $_GET['retire'] ?? 0;
 $error = $_GET['error'] ?? 0;
+$reset = $_GET['reset'] ?? 0;
 
 $database = new Database();
 $db = $database->getConnection();
@@ -29,7 +30,16 @@ if(!$tontine->getById($tontine_id) || $tontine->admin_id != $_SESSION['user_id']
 }
 
 $membreTontine = new MembreTontine($db);
-$membres = $membreTontine->getMembresByTontine($tontine_id);
+
+// Récupérer les membres avec leur adresse
+$query = "SELECT m.*, u.nom, u.prenom, u.email, u.telephone, u.adresse 
+          FROM membre_tontine m
+          JOIN users u ON m.user_id = u.id
+          WHERE m.tontine_id = :tontine_id AND m.est_actif = 1
+          ORDER BY m.ordre_tour ASC";
+$stmt = $db->prepare($query);
+$stmt->execute(['tontine_id' => $tontine_id]);
+$membres = $stmt;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -68,6 +78,22 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
             <div class="alert alert-danger">Erreur lors du retrait du membre.</div>
         <?php endif; ?>
 
+        <?php if($reset == 1 && isset($_SESSION['reset_password'])): ?>
+            <div class="alert alert-info">
+                <h5><i class="bi bi-key"></i>Nouveau mot de passe généré</h5>
+                <p>
+                    <strong>Membre :</strong> <?= $_SESSION['reset_user'] ?><br>
+                    <strong>Nouveau mot de passe :</strong> 
+                    <span class="badge bg-dark fs-6 p-2"><?= $_SESSION['reset_password'] ?></span>
+                </p>
+                <p class="mb-0">
+                    <small>À communiquer au membre. Il devra le changer à sa prochaine connexion.</small>
+                </p>
+            </div>
+            <?php unset($_SESSION['reset_password']); ?>
+            <?php unset($_SESSION['reset_user']); ?>
+        <?php endif; ?>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-people"></i> Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
             <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="btn btn-success">
@@ -85,11 +111,11 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
                 <div class="card-header bg-primary text-white">
                     <div class="row">
                         <div class="col-md-1">#</div>
-                        <div class="col-md-3">Nom</div>
+                        <div class="col-md-2">Nom</div>
                         <div class="col-md-2">Contact</div>
                         <div class="col-md-2">Email</div>
+                        <div class="col-md-2">Adresse</div>
                         <div class="col-md-1">Ordre</div>
-                        <div class="col-md-1">Statut</div>
                         <div class="col-md-2">Actions</div>
                     </div>
                 </div>
@@ -102,31 +128,28 @@ $membres = $membreTontine->getMembresByTontine($tontine_id);
                             <div class="list-group-item">
                                 <div class="row align-items-center">
                                     <div class="col-md-1"><?= $compteur++ ?></div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <strong><?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?></strong>
                                     </div>
                                     <div class="col-md-2"><?= htmlspecialchars($m['telephone']) ?></div>
                                     <div class="col-md-2"><?= htmlspecialchars($m['email']) ?></div>
+                                    <div class="col-md-2"><?= htmlspecialchars($m['adresse'] ?? '-') ?></div>
                                     <div class="col-md-1">
                                         <span class="badge bg-info"><?= $m['ordre_tour'] ?></span>
                                     </div>
-                                    <div class="col-md-1">
-                                        <?php if($m['est_actif']): ?>
-                                            <span class="badge bg-success">Actif</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">Retiré</span>
-                                        <?php endif; ?>
-                                    </div>
                                     <div class="col-md-2">
-                                        <?php if($m['est_actif']): ?>
-                                            <a href="retirer_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 
-                                               class="btn btn-sm btn-danger"
-                                               onclick="return confirm('Retirer <?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?> de la tontine ?\nSon historique sera conservé.')">
-                                                <i class="bi bi-person-x"></i> Retirer
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="reset_mdp_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 
+                                               class="btn btn-warning"
+                                               onclick="return confirm('Générer un nouveau mot de passe pour <?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?> ?')">
+                                                <i class="bi bi-key"></i>
                                             </a>
-                                        <?php else: ?>
-                                            <span class="text-muted">—</span>
-                                        <?php endif; ?>
+                                            <a href="retirer_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 
+                                               class="btn btn-danger"
+                                               onclick="return confirm('Retirer <?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?> de la tontine ?\nSon historique sera conservé.')">
+                                                <i class="bi bi-person-x"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

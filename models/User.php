@@ -15,6 +15,7 @@ class User {
     public $prenom;
     public $email;
     public $telephone;
+    public $adresse;
     public $password;
     public $role;
     public $created_at;
@@ -32,45 +33,32 @@ class User {
      * @return bool True si réussi, False si échec
      */
     public function create() {
-        // Requête SQL pour insérer un utilisateur
         $query = "INSERT INTO " . $this->table . "
-                  SET
-                    nom = :nom,
-                    prenom = :prenom,
-                    email = :email,
-                    telephone = :telephone,
-                    password = :password,
-                    role = :role";
+                (nom, prenom, email, telephone, adresse, password, role, premiere_connexion)
+                VALUES (:nom, :prenom, :email, :telephone, :adresse, :password, :role, :premiere_connexion)";
         
-        // Préparer la requête (sécurité)
         $stmt = $this->conn->prepare($query);
         
-        // Nettoyer les données (protéger contre les injections)
         $this->nom = htmlspecialchars(strip_tags($this->nom));
         $this->prenom = htmlspecialchars(strip_tags($this->prenom));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->telephone = htmlspecialchars(strip_tags($this->telephone));
+        $this->adresse = htmlspecialchars(strip_tags($this->adresse ?? ''));
         $this->role = htmlspecialchars(strip_tags($this->role));
-        
-        // Hasher le mot de passe (sécurité)
         $this->password = password_hash($this->password, PASSWORD_DEFAULT);
         
-        // Lier les paramètres à la requête
         $stmt->bindParam(":nom", $this->nom);
         $stmt->bindParam(":prenom", $this->prenom);
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":telephone", $this->telephone);
+        $stmt->bindParam(":adresse", $this->adresse);
         $stmt->bindParam(":password", $this->password);
         $stmt->bindParam(":role", $this->role);
+        $stmt->bindParam(":premiere_connexion", $this->premiere_connexion);
         
-        // Exécuter la requête
-        if($stmt->execute()) {
-            return true;
-        }
-        
-        // En cas d'erreur
-        return false;
+        return $stmt->execute();
     }
+        
 
     /**
      * Vérifier si un email existe déjà
@@ -118,6 +106,31 @@ class User {
             }
         }
         
+        return false;
+    }
+        /**
+     * Connecter un utilisateur par téléphone
+     */
+    public function loginByPhone($telephone, $password) {
+        $query = "SELECT * FROM " . $this->table . " WHERE telephone = :telephone LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":telephone", $telephone);
+        $stmt->execute();
+
+        if($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if(password_verify($password, $row['password'])) {
+                $this->id = $row['id'];
+                $this->nom = $row['nom'];
+                $this->prenom = $row['prenom'];
+                $this->email = $row['email'];
+                $this->telephone = $row['telephone'];
+                $this->role = $row['role'];
+                $this->premiere_connexion = $row['premiere_connexion'];
+                return true;
+            }
+        }
         return false;
     }
 

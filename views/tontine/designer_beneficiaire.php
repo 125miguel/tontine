@@ -31,7 +31,7 @@ if(!$seance->getById($seance_id)) {
     exit();
 }
 
-// Récupérer la tontine pour vérifier les droits
+// Récupérer la tontine pour vérifier les droits et le mode
 $tontine = new Tontine($db);
 $tontine->getById($seance->tontine_id);
 
@@ -53,7 +53,7 @@ $membreTontine = new MembreTontine($db);
 $total_collecte = $cotisation->calculerTotalSeance($seance_id);
 $nb_payes = $cotisation->countPayes($seance_id);
 
-// Récupérer tous les membres qui ont payé (pour les proposer comme bénéficiaires)
+// Récupérer tous les membres qui ont payé
 $query = "SELECT c.*, mt.user_id, u.nom, u.prenom, mt.ordre_tour
           FROM cotisations c
           JOIN membre_tontine mt ON c.membre_tontine_id = mt.id
@@ -65,6 +65,48 @@ $stmt = $db->prepare($query);
 $stmt->execute(['seance_id' => $seance_id]);
 $beneficiaires_potentiels = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Mode automatique : trouver le prochain bénéficiaire
+$prochain_beneficiaire = null;
+if($tontine->mode_beneficiaire == 'auto' && !empty($beneficiaires_potentiels)) {
+    // Récupérer le dernier bénéficiaire
+    $query = "SELECT beneficiaire_id FROM seances 
+              WHERE tontine_id = :tid AND beneficiaire_id IS NOT NULL 
+              ORDER BY date_seance DESC LIMIT 1";
+    $stmt = $db->prepare($query);
+    $stmt->execute(['tid' => $tontine->id]);
+    $dernier = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if($dernier) {
+        // Trouver le suivant dans l'ordre
+        $ordre_dernier = 0;
+        foreach($beneficiaires_potentiels as $b) {
+            if($b['membre_tontine_id'] == $dernier['beneficiaire_id']) {
+                $ordre_dernier = $b['ordre_tour'];
+                break;
+            }
+        }
+        
+        // Chercher le suivant avec un ordre supérieur
+        $suivant = null;
+        foreach($beneficiaires_potentiels as $b) {
+            if($b['ordre_tour'] > $ordre_dernier) {
+                $suivant = $b;
+                break;
+            }
+        }
+        
+        // Si pas de suivant, prendre le premier (retour au début)
+        if(!$suivant && !empty($beneficiaires_potentiels)) {
+            $suivant = $beneficiaires_potentiels[0];
+        }
+        
+        $prochain_beneficiaire = $suivant;
+    } elseif(!empty($beneficiaires_potentiels)) {
+        // Premier bénéficiaire de la tontine
+        $prochain_beneficiaire = $beneficiaires_potentiels[0];
+    }
+}
+
 // Traiter la sélection du bénéficiaire
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
     $membre_tontine_id = $_POST['membre_id'] ?? 0;
@@ -72,9 +114,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
     if(!$membre_tontine_id) {
         $error = "Veuillez sélectionner un bénéficiaire";
     } else {
-       // Désigner le bénéficiaire (sans clôturer)
+        // Désigner le bénéficiaire (sans clôturer)
         if($seance->setBeneficiaire($seance_id, $membre_tontine_id)) {
-            $success = " Bénéficiaire désigné avec succès : " . htmlspecialchars($_POST['beneficiaire_nom']);
+            $success = "Bénéficiaire désigné avec succès : " . htmlspecialchars($_POST['beneficiaire_nom']);
             header("refresh:2;url=rapport_seance.php?seance_id=" . $seance_id);
             exit();
         }
@@ -108,6 +150,23 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
             font-weight: bold;
             color: #28a745;
         }
+        .auto-suggestion {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auto-suggestion h3 {
+            font-size: 2rem;
+            margin: 15px 0;
+        }
+        .badge-mode {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -117,6 +176,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
                 <i class="bi bi-bank2"></i> Tontine
             </a>
             <div class="navbar-nav ms-auto">
+                <span class="nav-link text-white">
+                    Mode: <strong><?= $tontine->mode_beneficiaire == 'auto' ? 'Automatique' : 'Manuel' ?></strong>
+                </span>
                 <a class="nav-link" href="gerer_cotisations.php?seance_id=<?= $seance_id ?>">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
@@ -130,14 +192,18 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
                 
                 <?php if(isset($success)): ?>
                     <div class="alert alert-success text-center">
-                        <h4> <?= $success ?></h4>
-                        <p>Redirection vers la liste des tontines...</p>
+                        <h4><?= $success ?></h4>
+                        <p>Redirection vers le rapport de séance...</p>
                     </div>
                 <?php else: ?>
 
+                <?php if(isset($error)): ?>
+                    <div class="alert alert-danger"><?= $error ?></div>
+                <?php endif; ?>
+
                 <div class="card mb-4">
                     <div class="card-header bg-success text-white">
-                        <h4 class="mb-0"> Désigner le bénéficiaire du jour</h4>
+                        <h4 class="mb-0"><i class="bi bi-trophy"></i> Désigner le bénéficiaire du jour</h4>
                     </div>
                     <div class="card-body text-center">
                         <h5>Total collecté pour cette séance</h5>
@@ -150,6 +216,23 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
                     </div>
                 </div>
 
+                <?php if($tontine->mode_beneficiaire == 'auto' && $prochain_beneficiaire): ?>
+                    <!-- Mode automatique : suggestion -->
+                    <div class="auto-suggestion">
+                        <h5>Mode automatique</h5>
+                        <p>Le prochain bénéficiaire selon l'ordre est :</p>
+                        <h3><?= htmlspecialchars($prochain_beneficiaire['prenom'] . ' ' . $prochain_beneficiaire['nom']) ?></h3>
+                        <p class="mb-3">Ordre n°<?= $prochain_beneficiaire['ordre_tour'] ?></p>
+                        <form method="POST">
+                            <input type="hidden" name="membre_id" value="<?= $prochain_beneficiaire['membre_tontine_id'] ?>">
+                            <input type="hidden" name="beneficiaire_nom" value="<?= htmlspecialchars($prochain_beneficiaire['prenom'] . ' ' . $prochain_beneficiaire['nom']) ?>">
+                            <button type="submit" name="designer" class="btn btn-light btn-lg">
+                                <i class="bi bi-check-circle"></i> Confirmer ce bénéficiaire
+                            </button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
                 <?php if(empty($beneficiaires_potentiels)): ?>
                     <div class="alert alert-warning text-center">
                         <i class="bi bi-exclamation-triangle fs-1"></i>
@@ -159,8 +242,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
                             Retour à la gestion des cotisations
                         </a>
                     </div>
-                <?php else: ?>
-                    
+                <?php elseif($tontine->mode_beneficiaire == 'manuel'): ?>
+                    <!-- Mode manuel : choix libre -->
                     <form method="POST" id="formBeneficiaire">
                         <input type="hidden" name="membre_id" id="selectedMembreId" value="">
                         <input type="hidden" name="beneficiaire_nom" id="selectedMembreNom" value="">
@@ -189,17 +272,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['designer'])) {
 
                         <div class="text-center mt-4">
                             <button type="submit" name="designer" class="btn btn-success btn-lg" id="btnDesigner" disabled>
-                                <i class="bi bi-check-circle"></i> Désigner le bénéficiaire et clôturer
+                                <i class="bi bi-check-circle"></i> Désigner le bénéficiaire
                             </button>
                         </div>
                     </form>
-
-                    <div class="alert alert-info mt-4">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Note:</strong> Une fois le bénéficiaire désigné, la séance sera clôturée et on ne pourra plus modifier les cotisations.
-                    </div>
-
                 <?php endif; ?>
+
+                <div class="alert alert-info mt-4">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Note:</strong> La séance ne sera pas clôturée après cette désignation. Vous pourrez consulter le rapport et clôturer plus tard.
+                </div>
+
                 <?php endif; ?>
             </div>
         </div>

@@ -17,7 +17,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $nom = $_POST['nom'] ?? '';
     $description = $_POST['description'] ?? '';
-    $type_tontine = $_POST['type_tontine'] ?? 'principale';
+    $type_tontine = $_POST['type_tontine'] ?? 'Djangui';
+    $mode_beneficiaire = $_POST['mode_beneficiaire'] ?? 'manuel';
     $montant = $_POST['montant'] ?? '';
     $periodicite = $_POST['periodicite'] ?? '';
     $jour_reunion = $_POST['jour_reunion'] ?? '';
@@ -34,6 +35,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tontine->nom = $nom;
         $tontine->description = $description;
         $tontine->type_tontine = $type_tontine;
+        $tontine->mode_beneficiaire = $mode_beneficiaire;
         $tontine->montant_cotisation = $montant;
         $tontine->periodicite = $periodicite;
         $tontine->jour_reunion = $jour_reunion;
@@ -105,15 +107,20 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="mb-3">
                                 <label class="form-label">Type de tontine</label>
                                 <select name="type_tontine" class="form-control" required>
-                                    <option value="principale"> Tontine principale</option>
                                     <option value="anniversaire"> Anniversaire</option>
                                     <option value="djangui"> Djangui</option>
                                     <option value="solidarite"> Solidarité</option>
                                     <option value="deuil"> Deuil</option>
-                                    <option value="investissement"> Investissement</option>
-                                    <option value="autre"> Autre</option>
                                 </select>
                                 <small class="text-muted">Choisissez le type de tontine</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mode de désignation du bénéficiaire</label>
+                                <select name="mode_beneficiaire" class="form-control" required>
+                                    <option value="manuel">Manuel (je choisis moi-même)</option>
+                                    <option value="auto">Automatique (selon l'ordre des membres)</option>
+                                </select>
+                                <small class="text-muted">En mode automatique, le système proposera le prochain bénéficiaire selon l'ordre</small>
                             </div>
 
                             <div class="mb-3">

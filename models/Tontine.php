@@ -17,6 +17,7 @@ class Tontine {
     public $admin_id;
     public $created_at;
     public $type_tontine;
+    public $mode_beneficiaire;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -27,9 +28,9 @@ class Tontine {
  */
 public function create() {
     $query = "INSERT INTO " . $this->table . "
-              (nom, description, type_tontine, montant_cotisation, periodicite,
+              (nom, description, type_tontine, mode_beneficiaire, montant_cotisation, periodicite,
                jour_reunion, prochaine_reunion, admin_id)
-              VALUES (:nom, :description, :type_tontine, :montant_cotisation, :periodicite,
+              VALUES (:nom, :description, :type_tontine, :mode_beneficiaire, :montant_cotisation, :periodicite,
                       :jour_reunion, :prochaine_reunion, :admin_id)";
     
     $stmt = $this->conn->prepare($query);
@@ -38,6 +39,7 @@ public function create() {
     $this->nom = htmlspecialchars(strip_tags($this->nom));
     $this->description = htmlspecialchars(strip_tags($this->description));
     $this->type_tontine = htmlspecialchars(strip_tags($this->type_tontine));
+    $this->mode_beneficiaire = htmlspecialchars(strip_tags($this->mode_beneficiaire));
     $this->montant_cotisation = htmlspecialchars(strip_tags($this->montant_cotisation));
     $this->periodicite = htmlspecialchars(strip_tags($this->periodicite));
     $this->jour_reunion = htmlspecialchars(strip_tags($this->jour_reunion));
@@ -46,6 +48,7 @@ public function create() {
     $stmt->bindParam(":nom", $this->nom);
     $stmt->bindParam(":description", $this->description);
     $stmt->bindParam(":type_tontine", $this->type_tontine);
+    $stmt->bindParam(":mode_beneficiaire", $this->mode_beneficiaire);
     $stmt->bindParam(":montant_cotisation", $this->montant_cotisation);
     $stmt->bindParam(":periodicite", $this->periodicite);
     $stmt->bindParam(":jour_reunion", $this->jour_reunion);
@@ -89,6 +92,7 @@ public function create() {
             $this->nom = $row['nom'];
             $this->description = $row['description'];
             $this->type_tontine = $row['type_tontine'];
+            $this->mode_beneficiaire = $row['mode_beneficiaire'];
             $this->montant_cotisation = $row['montant_cotisation'];
             $this->periodicite = $row['periodicite'];
             $this->jour_reunion = $row['jour_reunion'];
