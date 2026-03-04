@@ -39,7 +39,7 @@ $tontine_active_id = $_SESSION['tontine_active'] ?? null;
 
 if($tontine_active_id) {
     $tontine->getById($tontine_active_id);
-    $tontine_active = clone $tontine; // Copie pour éviter les interférences
+    $tontine_active = clone $tontine;
 }
 
 // Pour les membres : récupérer leurs tontines
@@ -56,44 +56,41 @@ if($userRole == 'membre') {
     while($t = $tontinesMembre->fetch(PDO::FETCH_ASSOC)) {
         $mesTontines[] = $t;
         
-        // Si c'est la tontine active, on calcule les stats spécifiques
-        if($tontine_active && $t['id'] == $tontine_active_id) {
-            // Récupérer l'ID du membre dans cette tontine
-            $query = "SELECT id FROM membre_tontine 
-                      WHERE user_id = :uid AND tontine_id = :tid";
-            $stmt = $db->prepare($query);
-            $stmt->execute(['uid' => $userId, 'tid' => $t['id']]);
-            $membre = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Récupérer l'ID du membre dans cette tontine
+        $query = "SELECT id FROM membre_tontine 
+                  WHERE user_id = :uid AND tontine_id = :tid";
+        $stmt = $db->prepare($query);
+        $stmt->execute(['uid' => $userId, 'tid' => $t['id']]);
+        $membre = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($membre) {
+            // Total cotisé (TOUTES les tontines)
+            $queryTotal = "SELECT SUM(montant) as total FROM cotisations 
+                           WHERE membre_tontine_id = :mid AND statut = 'paye'";
+            $stmtTotal = $db->prepare($queryTotal);
+            $stmtTotal->execute(['mid' => $membre['id']]);
+            $total = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+            $totalCotise += ($total['total'] ?? 0);
             
-            if($membre) {
-                // Total cotisé
-                $queryTotal = "SELECT SUM(montant) as total FROM cotisations 
-                               WHERE membre_tontine_id = :mid AND statut = 'paye'";
-                $stmtTotal = $db->prepare($queryTotal);
-                $stmtTotal->execute(['mid' => $membre['id']]);
-                $total = $stmtTotal->fetch(PDO::FETCH_ASSOC);
-                $totalCotise += ($total['total'] ?? 0);
-                
-                // Amendes impayées
-                $amendes = $amendeAppliquee->getImpayesByMembre($membre['id']);
-                $amendesImpayees = array_merge($amendesImpayees, $amendes);
-                
-                // Dernières cotisations (3 dernières)
-                $queryDernieres = "SELECT c.*, s.date_seance 
-                                   FROM cotisations c
-                                   JOIN seances s ON c.seance_id = s.id
-                                   WHERE c.membre_tontine_id = :mid 
-                                   ORDER BY s.date_seance DESC LIMIT 3";
-                $stmtDernieres = $db->prepare($queryDernieres);
-                $stmtDernieres->execute(['mid' => $membre['id']]);
-                while($cot = $stmtDernieres->fetch(PDO::FETCH_ASSOC)) {
-                    $dernieresCotisations[] = $cot;
-                }
-                
-                // Prochaine réunion
-                if(!$prochaineReunion || $t['prochaine_reunion'] < $prochaineReunion) {
-                    $prochaineReunion = $t['prochaine_reunion'];
-                }
+            // Amendes impayées
+            $amendes = $amendeAppliquee->getImpayesByMembre($membre['id']);
+            $amendesImpayees = array_merge($amendesImpayees, $amendes);
+            
+            // Dernières cotisations (3 dernières toutes tontines confondues)
+            $queryDernieres = "SELECT c.*, s.date_seance 
+                               FROM cotisations c
+                               JOIN seances s ON c.seance_id = s.id
+                               WHERE c.membre_tontine_id = :mid 
+                               ORDER BY s.date_seance DESC LIMIT 3";
+            $stmtDernieres = $db->prepare($queryDernieres);
+            $stmtDernieres->execute(['mid' => $membre['id']]);
+            while($cot = $stmtDernieres->fetch(PDO::FETCH_ASSOC)) {
+                $dernieresCotisations[] = $cot;
+            }
+            
+            // Prochaine réunion (la plus proche)
+            if(!$prochaineReunion || $t['prochaine_reunion'] < $prochaineReunion) {
+                $prochaineReunion = $t['prochaine_reunion'];
             }
         }
     }
@@ -173,8 +170,8 @@ if($userRole == 'admin') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
-        body { background: #f8f9fa; }
-        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        body { background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%); }
+        .navbar { background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%); }
         .stat-card {
             background: white;
             border-radius: 15px;
@@ -184,20 +181,20 @@ if($userRole == 'admin') {
             height: 100%;
         }
         .stat-card:hover { transform: translateY(-5px); }
-        .stat-icon { font-size: 40px; color: #667eea; margin-bottom: 15px; }
+        .stat-icon { font-size: 40px; color: #6B46C1; margin-bottom: 15px; }
         .stat-number { font-size: 28px; font-weight: 600; color: #333; }
         .stat-label { color: #666; font-size: 14px; text-transform: uppercase; }
         .section-title {
             margin: 30px 0 20px;
             font-weight: 600;
             color: #333;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 2px solid #6B46C1;
             padding-bottom: 10px;
         }
         .list-group-item { border-left: none; border-right: none; }
         .badge-amende { background: #ffc107; color: #000; }
         .tontine-active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             color: white;
             padding: 15px;
             border-radius: 10px;
@@ -207,6 +204,23 @@ if($userRole == 'admin') {
             color: white;
             text-decoration: underline;
         }
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.1);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
     </style>
 </head>
 <body>
@@ -214,7 +228,7 @@ if($userRole == 'admin') {
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="#"><i class="bi bi-bank2"></i> Tontine</a>
+            <a class="navbar-brand" href="#"><i class="bi bi-bank2"></i> TONTONTINE</a>
             <div class="navbar-nav ms-auto">
                 <span class="nav-link text-white">
                     <i class="bi bi-person-circle"></i> <?= htmlspecialchars($user->prenom . ' ' . $user->nom) ?>
@@ -222,6 +236,11 @@ if($userRole == 'admin') {
                 <span class="nav-link text-white">
                     <i class="bi bi-tag"></i> <?= $user->role == 'admin' ? 'Président' : 'Membre' ?>
                 </span>
+                <?php if(!empty($user->nom_association)): ?>
+                    <span class="nav-link text-white">
+                        <i class="bi bi-building"></i> <?= htmlspecialchars($user->nom_association) ?>
+                    </span>
+                <?php endif; ?>
                 <?php if($userRole == 'membre' && $tontine_active): ?>
                     <span class="nav-link text-white">
                         <i class="bi bi-bank2"></i> <?= htmlspecialchars($tontine_active->nom) ?>
@@ -238,7 +257,14 @@ if($userRole == 'admin') {
 
         <!-- Message de bienvenue -->
         <div class="alert alert-info">
-            <h4 class="alert-heading"><i class="bi bi-hand-thumbs-up"></i>Bonjour, <?= htmlspecialchars($user->prenom) ?> !</h4>
+            <h4 class="alert-heading">
+                <i class="bi bi-hand-thumbs-up"></i> Bonjour, <?= htmlspecialchars($user->prenom) ?> !
+                <?php if(!empty($user->nom_association)): ?>
+                    
+                    <small class="d-block">Bienvenue dans votre espace pour 
+                    <strong><?= htmlspecialchars($user->nom_association) ?></strong></small>
+                <?php endif; ?>
+            </h4>
             <p class="mb-0">Bienvenue dans votre espace personnel.</p>
         </div>
 
@@ -375,8 +401,8 @@ if($userRole == 'admin') {
                 <div class="col-md-4 mb-3">
                     <div class="stat-card text-center">
                         <div class="stat-icon"><i class="bi bi-bank2"></i></div>
-                        <div class="stat-number"><?= $tontine_active ? '1' : '0' ?></div>
-                        <div class="stat-label">Tontine active</div>
+                        <div class="stat-number"><?= count($mesTontines) ?></div>
+                        <div class="stat-label">Mes tontines</div>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
@@ -393,6 +419,33 @@ if($userRole == 'admin') {
                         <div class="stat-label">Prochaine réunion</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- MES TONTINES (AVEC LIENS CLIQUABLES) -->
+            <h4 class="section-title"><i class="bi bi-grid-3x3-gap-fill"></i> Mes tontines</h4>
+            <div class="row mb-4">
+                <?php if(empty($mesTontines)): ?>
+                    <div class="col-12">
+                        <div class="alert alert-info">Vous n'êtes membre d'aucune tontine pour le moment.</div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach($mesTontines as $t): ?>
+                        <div class="col-md-6 mb-3">
+                            <a href="tontine/details_tontine.php?id=<?= $t['id'] ?>" style="text-decoration: none; color: inherit;">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><?= htmlspecialchars($t['nom']) ?></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-1"><strong>Montant:</strong> <?= number_format($t['montant_cotisation'], 0, ',', ' ') ?> F</p>
+                                        <p class="mb-1"><strong>Réunions:</strong> <?= htmlspecialchars($t['jour_reunion']) ?></p>
+                                        <p class="mb-0"><strong>Prochain tour:</strong> À déterminer</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
 
             <!-- AMENDES IMPAYÉES -->

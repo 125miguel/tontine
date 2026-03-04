@@ -135,11 +135,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
                             </div>
                         <?php else: ?>
                             <form method="POST" action="">
-                                <div class="mb-3">
-                                    <label class="form-label">Date de la séance</label>
-                                    <input type="date" name="date_seance" class="form-control" 
-                                           value="<?= date('Y-m-d') ?>" required>
-                                </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Date de la séance</label>

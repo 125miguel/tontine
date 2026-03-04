@@ -5,7 +5,7 @@ if(isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Connexion à la base de données pour récupérer les vrais avis
+// Connexion à la base de données pour récupérer les avis
 require_once 'config/database.php';
 $database = new Database();
 $db = $database->getConnection();
@@ -313,6 +313,7 @@ if(empty($vrais_avis)) {
             transition: all 0.3s;
             height: 100%;
             border: 1px solid rgba(107, 70, 193, 0.1);
+            cursor: pointer;
         }
         
         .feature-card:hover {
@@ -355,6 +356,20 @@ if(empty($vrais_avis)) {
             color: #666;
             margin: 0;
             line-height: 1.8;
+        }
+        
+        /* Modal pour détails des fonctionnalités */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+        .modal-header {
+            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
         }
         
         /* Testimonials Section */
@@ -606,6 +621,30 @@ if(empty($vrais_avis)) {
             color: #777;
         }
         
+        /* Bouton WhatsApp flottant */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #25D366;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 30px;
+            line-height: 60px;
+            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.3);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.5);
+            color: white;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .hero h1 {
@@ -637,7 +676,7 @@ if(empty($vrais_avis)) {
 </head>
 <body>
 
-    <!-- Messages de notification (en haut de la page) -->
+    <!-- Messages de notification -->
     <?php if(isset($_SESSION['avis_success'])): ?>
         <div class="container mt-5 pt-5">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -679,7 +718,7 @@ if(empty($vrais_avis)) {
                         <a class="nav-link" href="#tarifs">Tarifs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#avis">Avis</a>
+                        <a class="nav-link" href="#contact">Nous contacter</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="views/auth/login.php">Connexion</a>
@@ -706,15 +745,15 @@ if(empty($vrais_avis)) {
                     </h1>
                     <p>
                         TONTONTINE est la solution moderne pour gérer vos tontines, 
-                        cotisations, amendes et rapports. Rejoignez des milliers de 
-                        présidents qui nous font confiance.
+                        cotisations, amendes et rapports. Rejoignez des milliers d' 
+                        association qui nous font confiance.
                     </p>
                     <div class="hero-buttons">
-                        <a href="views/auth/register.php" class="btn-primary-custom">
-                            <i class="fas fa-rocket me-2"></i>Commencer gratuitement
-                        </a>
-                        <a href="#fonctionnalites" class="btn-secondary-custom">
+                        <a href="#fonctionnalites" class="btn-primary-custom">
                             <i class="fas fa-play me-2"></i>Voir la démo
+                        </a>
+                        <a href="views/auth/register.php" class="btn-secondary-custom">
+                            <i class="fas fa-rocket me-2"></i>Commencer
                         </a>
                     </div>
                     <div class="hero-stats">
@@ -734,7 +773,7 @@ if(empty($vrais_avis)) {
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
                     <div class="hero-image">
-                        <img src="assets/images/dashboard.jpg" alt="Dashboard TONTONTINE" class="img-fluid rounded-3 shadow-lg">
+                        <img src="assets/images/dashboard.jpeg" alt="Dashboard TONTONTINE" class="img-fluid rounded-3 shadow-lg">
                     </div>
                 </div>
             </div>
@@ -745,67 +784,117 @@ if(empty($vrais_avis)) {
     <section id="fonctionnalites" class="features">
         <div class="container">
             <div class="section-title" data-aos="fade-up">
-                <h2>Tout ce dont vous avez besoin dans <span>une seule application</span></h2>
-                <p>Une solution complète pour gérer vos tontines en toute sérénité</p>
+                <h2>Des <span>fonctionnalités</span> pensées pour vous</h2>
+                <p>Découvrez comment TONTONTINE simplifie la gestion de vos tontines</p>
             </div>
             <div class="row g-4">
+                <!-- Gestion financière -->
                 <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="100">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3>Gestion des membres</h3>
-                        <p>Ajoutez et gérez facilement les membres de vos tontines. Suivez leurs cotisations en temps réel.</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="200">
-                    <div class="feature-card">
+                    <div class="feature-card" data-bs-toggle="modal" data-bs-target="#modalFinance">
                         <div class="feature-icon">
                             <i class="fas fa-coins"></i>
                         </div>
-                        <h3>Cotisations & Amendes</h3>
-                        <p>Enregistrez les paiements, gérez les retards et appliquez automatiquement les amendes.</p>
+                        <h3>Gestion financière</h3>
+                        <p>Gérez vos cotisations, amendes et séances en un clin d'œil. Suivez en temps réel tous les états financiers.</p>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="300">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <h3>Séances & Bénéficiaires</h3>
-                        <p>Organisez vos réunions, désignez les bénéficiaires et suivez l'ordre des tours.</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="400">
-                    <div class="feature-card">
+                
+                <!-- Rapports détaillés -->
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="feature-card" data-bs-toggle="modal" data-bs-target="#modalRapports">
                         <div class="feature-icon">
                             <i class="fas fa-file-pdf"></i>
                         </div>
                         <h3>Rapports détaillés</h3>
-                        <p>Générez des rapports complets de chaque séance avec notes et export PDF.</p>
+                        <p>Générez des rapports complets de chaque séance avec notes et export PDF. Parfait pour la transparence.</p>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="500">
-                    <div class="feature-card">
+                
+                <!-- Notifications -->
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="feature-card" data-bs-toggle="modal" data-bs-target="#modalNotifications">
                         <div class="feature-icon">
                             <i class="fas fa-bell"></i>
                         </div>
                         <h3>Notifications</h3>
-                        <p>Recevez des rappels par email pour les réunions et les cotisations impayées.</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="600">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h3>Sécurisé</h3>
-                        <p>Vos données sont protégées. Authentification sécurisée et mots de passe hashés.</p>
+                        <p>Recevez des rappels par email pour les réunions et les cotisations impayées. Plus rien ne vous échappe.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Modals pour les fonctionnalités -->
+    <div class="modal fade" id="modalFinance" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-coins me-2"></i>Gestion financière</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Avec TONTONTINE, la gestion financière de vos tontines devient un jeu d'enfant :</p>
+                    <ul>
+                        <li><strong>Cotisations :</strong> Enregistrez les paiements en un clic</li>
+                        <li><strong>Amendes :</strong> Appliquez automatiquement les pénalités de retard</li>
+                        <li><strong>Séances :</strong> Organisez vos réunions et désignez les bénéficiaires</li>
+                        <li><strong>Tableau de bord :</strong> Suivez en temps réel l'état des cotisations</li>
+                    </ul>
+                    <p>Le mode automatique propose même le prochain bénéficiaire selon l'ordre !</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="views/auth/register.php" class="btn btn-primary">Commencer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalRapports" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-pdf me-2"></i>Rapports détaillés</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Plus jamais de calculs fastidieux :</p>
+                    <ul>
+                        <li><strong>Rapports complets :</strong> Membres, cotisations, amendes, bénéficiaires</li>
+                        <li><strong>Notes de séance :</strong> Ajoutez vos observations et décisions</li>
+                        <li><strong>Export PDF :</strong> Téléchargez et imprimez vos rapports</li>
+                        <li><strong>Historique :</strong> Consultez toutes les anciennes séances</li>
+                    </ul>
+                    <p>Idéal pour la transparence avec vos membres !</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="views/auth/register.php" class="btn btn-primary">Commencer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalNotifications" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Notifications</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Ne laissez rien au hasard :</p>
+                    <ul>
+                        <li><strong>Rappels de réunion :</strong> Vos membres reçoivent un email avant chaque séance</li>
+                        <li><strong>Relances impayés :</strong> Notifications automatiques pour les cotisations en retard</li>
+                        <li><strong>Personnalisation :</strong> Choisissez le délai des rappels</li>
+                        <li><strong>Historique :</strong> Suivez toutes les notifications envoyées</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <a href="views/auth/register.php" class="btn btn-primary">Commencer</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Tarifs Section -->
     <section id="tarifs" class="features" style="background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);">
@@ -841,7 +930,7 @@ if(empty($vrais_avis)) {
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Support prioritaire</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Export des données</li>
                         </ul>
-                        <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Choisir Basic</a>
+                        <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
                 </div>
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="300">
@@ -849,19 +938,17 @@ if(empty($vrais_avis)) {
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Pro</h3>
                         <div style="font-size: 48px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> 16 à 50 memb
-                            </li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 16 membres</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Support VIP</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Formation incluse</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Personnalisation</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Export des données</li>
                         </ul>
-                        <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Choisir Pro</a>
+                        <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
                 </div>
             </div>
             <p class="text-center mt-4 text-muted">
-                <i class="fas fa-gift me-2"></i>Offre annuelle : 2 mois offerts
+                <i class="fas fa-gift me-2"></i>Offre annuelle : 1 mois offert
             </p>
         </div>
     </section>
@@ -941,24 +1028,20 @@ if(empty($vrais_avis)) {
     </section>
 
     <!-- CTA Section -->
-    <section class="cta">
+    <section id="contact" class="cta">
         <div class="container">
             <div class="cta-box" data-aos="zoom-in">
                 <h2>Prêt à simplifier votre tontine ?</h2>
-                <p>Rejoignez des milliers de présidents qui nous font confiance</p>
-                <a href="views/auth/register.php" class="btn-cta">
-                    <i class="fas fa-rocket me-2"></i>Commencer gratuitement
+                <p>Rejoignez des milliers d'association qui nous font confiance</p>
+                <a href="#" class="btn-cta" onclick="alert('Vidéo de démo à venir !'); return false;">
+                    <i class="fas fa-play me-2"></i>Voir la démo
                 </a>
-                <p class="mt-3" style="opacity: 0.8; font-size: 14px;">
-                    <i class="fas fa-check-circle me-1"></i>15 jours d'essai gratuit 
-                    <i class="fas fa-check-circle ms-3 me-1"></i>Sans carte bancaire
-                </p>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer>
+    <footer id="contact">
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4">
@@ -991,9 +1074,9 @@ if(empty($vrais_avis)) {
                 <div class="col-md-4 mb-4">
                     <h5>Contact</h5>
                     <ul>
-                        <li><i class="fas fa-envelope me-2"></i> contact@tontontine.com</li>
-                        <li><i class="fas fa-phone me-2"></i> +237 6XX XXX XXX</li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i> Yaoundé, Cameroun</li>
+                        <li><i class="fas fa-envelope me-2"></i> <a href="mailto:contact@tontontine.com">contact@tontontine.com</a></li>
+                        <li><i class="fas fa-phone me-2"></i> <a href="tel:+237699999999">+237 6XX XXX XXX</a></li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Douala, Cameroun</li>
                     </ul>
                 </div>
             </div>
@@ -1002,6 +1085,11 @@ if(empty($vrais_avis)) {
             </div>
         </div>
     </footer>
+
+    <!-- Bouton WhatsApp flottant -->
+    <a href="https://wa.me/237699999999" class="whatsapp-float" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>

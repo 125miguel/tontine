@@ -14,6 +14,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $nom = $_POST['nom'] ?? '';
     $prenom = $_POST['prenom'] ?? '';
+    $nom_association = $_POST['nom_association'] ?? '';
     $email = $_POST['email'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
     $password = $_POST['password'] ?? '';
@@ -37,6 +38,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $user->nom = $nom;
             $user->prenom = $prenom;
+            $user->nom_association = $nom_association;
             $user->email = $email;
             $user->telephone = $telephone;
             $user->password = $password;
@@ -185,6 +187,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <input type="text" name="prenom" class="form-control" 
                                            value="<?= htmlspecialchars($_POST['prenom'] ?? '') ?>" 
                                            placeholder="Votre prénom" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Nom de votre association (optionnel)</label>
+                                    <input type="text" name="nom_association" class="form-control" 
+                                        value="<?= htmlspecialchars($_POST['nom_association'] ?? '') ?>"
+                                        placeholder="Ex: Association des Mamans Fortes, Djangui des Amis...">
+                                    <small class="text-muted">Ce nom apparaîtra dans votre tableau de bord</small>
                                 </div>
                             </div>
 

@@ -19,6 +19,7 @@ class User {
     public $password;
     public $role;
     public $created_at;
+    public $nom_association;
 
     /**
      * Constructeur : s'exécute automatiquement quand on crée un objet User
@@ -34,32 +35,33 @@ class User {
      */
     public function create() {
         $query = "INSERT INTO " . $this->table . "
-                (nom, prenom, email, telephone, adresse, password, role, premiere_connexion)
-                VALUES (:nom, :prenom, :email, :telephone, :adresse, :password, :role, :premiere_connexion)";
+                (nom, prenom, nom_association, email, telephone, password, role, premiere_connexion)
+                VALUES (:nom, :prenom, :nom_association, :email, :telephone, :password, :role, :premiere_connexion)";
         
         $stmt = $this->conn->prepare($query);
         
         $this->nom = htmlspecialchars(strip_tags($this->nom));
         $this->prenom = htmlspecialchars(strip_tags($this->prenom));
+        $this->nom_association = htmlspecialchars(strip_tags($this->nom_association ?? ''));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->telephone = htmlspecialchars(strip_tags($this->telephone));
-        $this->adresse = htmlspecialchars(strip_tags($this->adresse ?? ''));
         $this->role = htmlspecialchars(strip_tags($this->role));
         $this->password = password_hash($this->password, PASSWORD_DEFAULT);
         
         $stmt->bindParam(":nom", $this->nom);
         $stmt->bindParam(":prenom", $this->prenom);
+        $stmt->bindParam(":nom_association", $this->nom_association);
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":telephone", $this->telephone);
-        $stmt->bindParam(":adresse", $this->adresse);
         $stmt->bindParam(":password", $this->password);
         $stmt->bindParam(":role", $this->role);
         $stmt->bindParam(":premiere_connexion", $this->premiere_connexion);
         
-        return $stmt->execute();
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
     }
-        
-
     /**
      * Vérifier si un email existe déjà
      * @param string $email L'email à vérifier
@@ -124,6 +126,7 @@ class User {
                 $this->id = $row['id'];
                 $this->nom = $row['nom'];
                 $this->prenom = $row['prenom'];
+                $this->nom_association = $row['nom_association'];
                 $this->email = $row['email'];
                 $this->telephone = $row['telephone'];
                 $this->role = $row['role'];
@@ -151,6 +154,7 @@ class User {
             $this->id = $row['id'];
             $this->nom = $row['nom'];
             $this->prenom = $row['prenom'];
+            $this->nom_association = $row['nom_association'];
             $this->email = $row['email'];
             $this->telephone = $row['telephone'];
             $this->role = $row['role'];
