@@ -15,6 +15,7 @@ require_once __DIR__ . '/../../models/Tontine.php';
 require_once __DIR__ . '/../../models/Cotisation.php';
 require_once __DIR__ . '/../../models/AmendeAppliquee.php';
 require_once __DIR__ . '/../../models/MembreTontine.php';
+require_once __DIR__ . '/../../models/Presence.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -44,13 +45,17 @@ if($tontine->admin_id != $_SESSION['user_id']) {
 
 $cotisation = new Cotisation($db);
 $amendeAppliquee = new AmendeAppliquee($db);
+$presence = new Presence($db);
 
 // Récupérer les données
 $cotisations = $cotisation->getBySeance($seance_id);
 $total_cotisations = $cotisation->calculerTotalSeance($seance_id);
 $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
+$presences = $presence->getBySeance($seance_id);
+$nb_presents = $presence->countPresences($seance_id);
+$nb_absents = $presence->countAbsences($seance_id);
 
-// Compter les statuts
+// Compter les statuts des cotisations
 $nb_paye = 0;
 $nb_impaye = 0;
 $nb_retard = 0;
@@ -105,7 +110,7 @@ $notes = $seance->getNotes($seance_id);
     <style>
         body { background: #f8f9fa; }
         .rapport-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             color: white;
             padding: 30px 0;
             margin-bottom: 30px;
@@ -117,7 +122,7 @@ $notes = $seance->getNotes($seance_id);
             margin-bottom: 20px;
         }
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             color: white;
             border-radius: 15px 15px 0 0 !important;
         }
@@ -128,14 +133,14 @@ $notes = $seance->getNotes($seance_id);
         .badge-impaye { background: #dc3545; color: white; }
         .badge-retard { background: #ffc107; color: black; }
         .total-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             color: white;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
         }
         .print-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             color: white;
             border: none;
             padding: 12px 30px;
@@ -146,7 +151,7 @@ $notes = $seance->getNotes($seance_id);
         }
         .print-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.4);
         }
         .action-buttons {
             display: flex;
@@ -339,6 +344,54 @@ $notes = $seance->getNotes($seance_id);
             </div>
         </div>
         <?php endif; ?>
+
+        <!-- Section des présences -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-person-check"></i> Présences</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="alert alert-success text-center">
+                            <strong>Présents</strong>
+                            <h3><?= $nb_presents ?></h3>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-danger text-center">
+                            <strong>Absents</strong>
+                            <h3><?= $nb_absents ?></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ordre</th>
+                            <th>Membre</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($presences as $p): ?>
+                            <tr>
+                                <td><?= $p['ordre_tour'] ?></td>
+                                <td><?= htmlspecialchars($p['prenom'] . ' ' . $p['nom']) ?></td>
+                                <td>
+                                    <?php if($p['est_present']): ?>
+                                        <span class="badge bg-success">Présent</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">Absent</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <!-- Notes de séance -->
         <div class="card mt-4">

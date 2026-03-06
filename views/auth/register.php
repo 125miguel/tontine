@@ -48,7 +48,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Récupérer l'ID du nouvel utilisateur
                 $nouvel_admin_id = $db->lastInsertId();
                 
-                // Créer l'association
+                // 1. Créer l'association
                 $query = "INSERT INTO associations (nom, admin_id) VALUES (:nom, :admin_id)";
                 $stmt = $db->prepare($query);
                 $stmt->execute([
@@ -56,10 +56,25 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'admin_id' => $nouvel_admin_id
                 ]);
                 
+                $association_id = $db->lastInsertId();
+                
+                // 2. Ajouter le président comme membre de sa propre association
+                // Générer le même mot de passe pour l'association
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+                
+                $query = "INSERT INTO membres_association (user_id, association_id, password, premiere_connexion) 
+                        VALUES (:user_id, :association_id, :password, 0)";
+                $stmt = $db->prepare($query);
+                $stmt->execute([
+                    'user_id' => $nouvel_admin_id,
+                    'association_id' => $association_id,
+                    'password' => $hashed
+                ]);
+                
                 $_SESSION['register_success'] = "Inscription réussie ! Connectez-vous avec vos identifiants.";
                 header("Location: login.php");
                 exit();
-            }
+            }           
              else {
                 $error = "Erreur lors de l'inscription";
             }

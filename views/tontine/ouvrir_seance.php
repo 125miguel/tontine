@@ -62,6 +62,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
         $seance->nom_reunion = $nom_reunion;
         
         if($seance->create()) {
+            // Initialiser les présences
+           require_once __DIR__ . '/../../models/Presence.php';
+           $presence = new Presence($db);
+           $presence->initPresences($seance->id, $tontine_id);
             // Initialiser les cotisations pour tous les membres
             if($cotisation->initCotisationsPourSeance($seance->id, $tontine_id, $tontine->montant_cotisation)) {
                 $success = "Séance ouverte avec succès !";
