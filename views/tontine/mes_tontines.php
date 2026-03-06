@@ -121,6 +121,9 @@ $stmt = $tontine->getByAdmin($_SESSION['user_id']);
                                     <a href="../parametres/rappels.php?tontine_id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
                                         <i class="bi bi-bell"></i> Rappels
                                     </a>
+                                    <a href="../etats/etats_administrateur.php?tontine_id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
+                                        <i class="bi bi-file-text"></i> États
+                                    </a>
                                 </div>
                             </div>
                         </div>

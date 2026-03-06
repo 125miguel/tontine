@@ -484,6 +484,11 @@ if($userRole == 'admin') {
                                     </div>
                                 </div>
                             </a>
+                            <div class="mt-2 text-center">
+                                <a href="etats/etats_membre.php?tontine_id=<?= $t['id'] ?>" class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-file-text"></i> Mes états
+                                </a>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
