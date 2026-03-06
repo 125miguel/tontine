@@ -45,9 +45,20 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user->role = 'admin'; // ← MODIFICATION ICI : forcé à admin
             
            if($user->create()) {
-            $_SESSION['register_success'] = "Inscription réussie ! Connectez-vous avec vos identifiants.";
-            header("Location: login.php");
-            exit();
+                // Récupérer l'ID du nouvel utilisateur
+                $nouvel_admin_id = $db->lastInsertId();
+                
+                // Créer l'association
+                $query = "INSERT INTO associations (nom, admin_id) VALUES (:nom, :admin_id)";
+                $stmt = $db->prepare($query);
+                $stmt->execute([
+                    'nom' => $nom_association,
+                    'admin_id' => $nouvel_admin_id
+                ]);
+                
+                $_SESSION['register_success'] = "Inscription réussie ! Connectez-vous avec vos identifiants.";
+                header("Location: login.php");
+                exit();
             }
              else {
                 $error = "Erreur lors de l'inscription";
@@ -189,11 +200,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                            placeholder="Votre prénom" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Nom de votre association (optionnel)</label>
+                                    <label class="form-label">Nom de votre association <span class="text-danger">*</span></label>
                                     <input type="text" name="nom_association" class="form-control" 
                                         value="<?= htmlspecialchars($_POST['nom_association'] ?? '') ?>"
-                                        placeholder="Ex: Association des Mamans Fortes, Djangui des Amis...">
-                                    <small class="text-muted">Ce nom apparaîtra dans votre tableau de bord</small>
+                                        placeholder="Ex: Association des Mamans Fortes, Djangui des Amis..."
+                                        required>
+                                    <small class="text-muted">Ce nom sera unique et identifiera votre association</small>
                                 </div>
                             </div>
 

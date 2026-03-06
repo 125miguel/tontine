@@ -15,6 +15,7 @@ class Tontine {
     public $jour_reunion;
     public $prochaine_reunion;
     public $admin_id;
+    public $association_id;
     public $created_at;
     public $type_tontine;
     public $mode_beneficiaire;
@@ -29,22 +30,12 @@ class Tontine {
 public function create() {
     $query = "INSERT INTO " . $this->table . "
               (nom, description, type_tontine, mode_beneficiaire, montant_cotisation, periodicite,
-               jour_reunion, prochaine_reunion, admin_id)
+               jour_reunion, prochaine_reunion, admin_id, association_id)
               VALUES (:nom, :description, :type_tontine, :mode_beneficiaire, :montant_cotisation, :periodicite,
-                      :jour_reunion, :prochaine_reunion, :admin_id)";
+                      :jour_reunion, :prochaine_reunion, :admin_id, :association_id)";
     
     $stmt = $this->conn->prepare($query);
     
-    // Nettoyer les données
-    $this->nom = htmlspecialchars(strip_tags($this->nom));
-    $this->description = htmlspecialchars(strip_tags($this->description));
-    $this->type_tontine = htmlspecialchars(strip_tags($this->type_tontine));
-    $this->mode_beneficiaire = htmlspecialchars(strip_tags($this->mode_beneficiaire));
-    $this->montant_cotisation = htmlspecialchars(strip_tags($this->montant_cotisation));
-    $this->periodicite = htmlspecialchars(strip_tags($this->periodicite));
-    $this->jour_reunion = htmlspecialchars(strip_tags($this->jour_reunion));
-    
-    // Lier les paramètres
     $stmt->bindParam(":nom", $this->nom);
     $stmt->bindParam(":description", $this->description);
     $stmt->bindParam(":type_tontine", $this->type_tontine);
@@ -54,6 +45,7 @@ public function create() {
     $stmt->bindParam(":jour_reunion", $this->jour_reunion);
     $stmt->bindParam(":prochaine_reunion", $this->prochaine_reunion);
     $stmt->bindParam(":admin_id", $this->admin_id);
+    $stmt->bindParam(":association_id", $this->association_id);
     
     if($stmt->execute()) {
         return true;
@@ -98,6 +90,7 @@ public function create() {
             $this->jour_reunion = $row['jour_reunion'];
             $this->prochaine_reunion = $row['prochaine_reunion'];
             $this->admin_id = $row['admin_id'];
+            $this->association_id = $row['association_id'];
             $this->created_at = $row['created_at'];
             
             return true;

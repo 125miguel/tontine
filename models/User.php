@@ -165,5 +165,14 @@ class User {
         
         return false;
     }
+        /**
+     * Récupérer l'association du président
+     */
+    public function getAssociation() {
+        $query = "SELECT * FROM associations WHERE admin_id = :admin_id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['admin_id' => $this->id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
 ?>

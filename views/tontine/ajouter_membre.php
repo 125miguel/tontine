@@ -38,14 +38,24 @@ if(!$tontine->getById($tontine_id) || $tontine->admin_id != $_SESSION['user_id']
     exit();
 }
 
+// Récupérer l'association du président
+$query = "SELECT id, nom FROM associations WHERE admin_id = :admin_id";
+$stmt = $db->prepare($query);
+$stmt->execute(['admin_id' => $_SESSION['user_id']]);
+$association = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if(!$association) {
+    header("Location: mes_tontines.php?error=no_association");
+    exit();
+}
+
 $membreTontine = new MembreTontine($db);
 $user = new User($db);
 
 $error = '';
 $success = '';
-$temp_password = '';
 
-// Traitement du formulaire de création de nouveau membre
+// Traiter la création d'un nouveau membre (CAS 2 et 3)
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
     
     $nom = $_POST['nom'] ?? '';
@@ -57,19 +67,35 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
     if(empty($nom) || empty($prenom) || empty($email) || empty($telephone)) {
         $error = "Tous les champs sont obligatoires";
     } else {
-        // Vérifier si l'email existe déjà
+        // Vérifier si l'email existe déjà (sécurité)
         $query = "SELECT id FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->execute(['email' => $email]);
+        $user_existant = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if($stmt->rowCount() > 0) {
-            $error = "Cet email existe déjà. Utilisez la recherche pour ajouter ce membre.";
+        if($user_existant) {
+            // CAS 2 : L'utilisateur existe déjà
+            $user_id = $user_existant['id'];
+            
+            // Vérifier s'il est déjà dans l'association (ne devrait pas arriver)
+            $query = "SELECT id FROM membres_association 
+                      WHERE user_id = :uid AND association_id = :aid";
+            $stmt = $db->prepare($query);
+            $stmt->execute([
+                'uid' => $user_id,
+                'aid' => $association['id']
+            ]);
+            
+            if($stmt->rowCount() > 0) {
+                $error = "Cet utilisateur est déjà dans votre association. Veuillez utiliser la recherche.";
+                header("Location: ajouter_membre.php?id=" . $tontine_id);
+                exit();
+            }
         } else {
-            // Générer un mot de passe temporaire
+            // CAS 3 : Créer un nouvel utilisateur
             $temp_password = genererMotDePasse(6);
             $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
             
-            // Créer l'utilisateur
             $query = "INSERT INTO users (nom, prenom, email, telephone, adresse, password, role, premiere_connexion) 
                       VALUES (:nom, :prenom, :email, :telephone, :adresse, :password, 'membre', 1)";
             $stmt = $db->prepare($query);
@@ -83,29 +109,44 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             ]);
             
             $user_id = $db->lastInsertId();
-            
-            // Ajouter à la tontine
-            $membreTontine->user_id = $user_id;
-            $membreTontine->tontine_id = $tontine_id;
-            $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
-            $membreTontine->ajouterMembre();
-            
-            $_SESSION['temp_password'] = $temp_password;
-            $_SESSION['temp_user'] = $email;
-            
-            header("Location: ajouter_membre.php?id=" . $tontine_id . "&created=1");
-            exit();
         }
+        
+        // Ajouter à l'association (pour CAS 2 et 3)
+        $temp_password = $temp_password ?? genererMotDePasse(6);
+        $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
+        
+        $query = "INSERT INTO membres_association (user_id, association_id, password) 
+                  VALUES (:uid, :aid, :password)";
+        $stmt = $db->prepare($query);
+        $stmt->execute([
+            'uid' => $user_id,
+            'aid' => $association['id'],
+            'password' => $hashed
+        ]);
+        
+        // Ajouter à la tontine
+        $membreTontine->user_id = $user_id;
+        $membreTontine->tontine_id = $tontine_id;
+        $membreTontine->association_id = $association['id'];
+        $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
+        $membreTontine->ajouterMembre();
+        
+        $_SESSION['temp_password'] = $temp_password;
+        $_SESSION['temp_user'] = $email;
+        
+        header("Location: ajouter_membre.php?id=" . $tontine_id . "&created=1");
+        exit();
     }
 }
 
-// Ajouter un membre existant
+// Ajouter un membre existant à la tontine (CAS 1)
 if(isset($_GET['add_user'])) {
     $user_id = $_GET['add_user'];
     
-    // Vérifier si déjà membre
+    // Vérifier si déjà membre de cette tontine
     $membreTontine->user_id = $user_id;
     $membreTontine->tontine_id = $tontine_id;
+    $membreTontine->association_id = $association['id'];
     
     if($membreTontine->estDejaMembre()) {
         $error = "Cet utilisateur est déjà membre de cette tontine";
@@ -114,57 +155,36 @@ if(isset($_GET['add_user'])) {
         $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
         
         if($membreTontine->ajouterMembre()) {
-            $success = "Membre ajouté avec succès !";
-            
-            // Vérifier si c'est un nouveau membre qui n'a jamais eu de mot de passe
-            $queryUser = "SELECT premiere_connexion FROM users WHERE id = :uid";
-            $stmtUser = $db->prepare($queryUser);
-            $stmtUser->execute(['uid' => $user_id]);
-            $user_data = $stmtUser->fetch(PDO::FETCH_ASSOC);
-            
-            if($user_data && $user_data['premiere_connexion']) {
-                // Récupérer l'email
-                $queryEmail = "SELECT email FROM users WHERE id = :uid";
-                $stmtEmail = $db->prepare($queryEmail);
-                $stmtEmail->execute(['uid' => $user_id]);
-                $email = $stmtEmail->fetch()['email'];
-                
-                // Générer un nouveau mot de passe
-                $temp_password = genererMotDePasse(6);
-                $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
-                
-                $queryUpdate = "UPDATE users SET password = :password WHERE id = :uid";
-                $stmtUpdate = $db->prepare($queryUpdate);
-                $stmtUpdate->execute([
-                    'password' => $hashed,
-                    'uid' => $user_id
-                ]);
-                
-                $_SESSION['temp_password'] = $temp_password;
-                $_SESSION['temp_user'] = $email;
-            }
+            $success = "Membre ajouté avec succès à la tontine !";
         } else {
             $error = "Erreur lors de l'ajout du membre";
         }
     }
 }
 
-// Recherche d'utilisateurs
+// Recherche
 $search = $_GET['search'] ?? '';
-$users = [];
+$user_trouve = null;
+$est_dans_association = false;
 
 if(!empty($search)) {
-    $query = "SELECT * FROM users 
-              WHERE email = :search OR nom LIKE :searchLike OR prenom LIKE :searchLike
-              ORDER BY nom, prenom";
-    
-    $searchTerm = "%$search%";
+    // Chercher si l'email/téléphone existe déjà dans users
+    $query = "SELECT * FROM users WHERE email = :search OR telephone = :search";
     $stmt = $db->prepare($query);
-    $stmt->execute([
-        'search' => $search,
-        'searchLike' => $searchTerm
-    ]);
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->execute(['search' => $search]);
+    $user_trouve = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if($user_trouve) {
+        // Vérifier s'il est déjà dans l'association
+        $query = "SELECT * FROM membres_association 
+                  WHERE user_id = :uid AND association_id = :aid";
+        $stmt = $db->prepare($query);
+        $stmt->execute([
+            'uid' => $user_trouve['id'],
+            'aid' => $association['id']
+        ]);
+        $est_dans_association = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -175,14 +195,68 @@ if(!empty($search)) {
     <title>Ajouter des membres</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+        }
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.1);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+        }
+        .temp-password {
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .password-value {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            background: white;
+            color: #6B46C1;
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .info-box {
+            background: #e7f5ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-bank2"></i> Tontine
+                <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
+                <span class="nav-link text-white">
+                    <i class="bi bi-building"></i> <?= htmlspecialchars($association['nom']) ?>
+                </span>
                 <a class="nav-link" href="voir_membres.php?id=<?= $tontine_id ?>">
                     <i class="bi bi-people"></i> Voir les membres
                 </a>
@@ -197,22 +271,17 @@ if(!empty($search)) {
         <div class="row">
             <div class="col-md-8 offset-md-2">
                 
-                <!-- Message de succès pour la création -->
-                <?php if(isset($_GET['created']) && $_GET['created'] == 1): ?>
-                    <div class="alert alert-success"> Membre créé et ajouté avec succès !</div>
-                <?php endif; ?>
-                
                 <!-- Message pour afficher le mot de passe temporaire -->
-                <?php if(isset($_SESSION['temp_password'])): ?>
-                    <div class="alert alert-info">
-                        <h5><i class="bi bi-key"></i> Mot de passe temporaire généré</h5>
+                <?php if(isset($_GET['created']) && isset($_SESSION['temp_password'])): ?>
+                    <div class="temp-password">
+                        <h5 class="mb-3"><i class="bi bi-check-circle"></i> Membre créé avec succès !</h5>
                         <p>
                             <strong>Email :</strong> <?= htmlspecialchars($_SESSION['temp_user']) ?><br>
                             <strong>Mot de passe temporaire :</strong> 
-                            <span class="badge bg-dark fs-6 p-2"><?= $_SESSION['temp_password'] ?></span>
+                            <span class="password-value"><?= $_SESSION['temp_password'] ?></span>
                         </p>
                         <p class="mb-0">
-                            <small>À communiquer au membre. Il devra changer son mot de passe à la première connexion.</small>
+                            <small>⚠️ À communiquer au membre pour qu'il se connecte à votre association.</small>
                         </p>
                     </div>
                     <?php 
@@ -229,8 +298,8 @@ if(!empty($search)) {
                     <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
                 <?php endif; ?>
 
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
+                <div class="card">
+                    <div class="card-header">
                         <h4 class="mb-0"><i class="bi bi-person-plus"></i> Ajouter des membres à "<?= htmlspecialchars($tontine->nom) ?>"</h4>
                     </div>
                     <div class="card-body">
@@ -240,28 +309,47 @@ if(!empty($search)) {
                             <input type="hidden" name="id" value="<?= $tontine_id ?>">
                             <div class="input-group">
                                 <input type="text" name="search" class="form-control" 
-                                       placeholder="Rechercher par email, nom ou prénom..."
+                                       placeholder="Rechercher par email ou téléphone..."
                                        value="<?= htmlspecialchars($search) ?>">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-search"></i> Rechercher
                                 </button>
                             </div>
-                            <small class="text-muted">Tapez l'email exact pour rechercher un membre existant</small>
                         </form>
 
                         <?php if(!empty($search)): ?>
-                            <h5 class="mb-3">Résultats de la recherche</h5>
+                            <h5 class="mb-3">Résultat de la recherche</h5>
                             
-                            <?php if(empty($users)): ?>
-                                <div class="alert alert-info">
-                                    <p><i class="bi bi-info-circle"></i> Aucun utilisateur trouvé avec "<?= htmlspecialchars($search) ?>"</p>
-                                    <p class="mb-0">Vous pouvez créer un nouveau membre avec cet email :</p>
+                            <?php if($user_trouve && $est_dans_association): ?>
+                                <!-- CAS 1 : Membre existe et est déjà dans l'association -->
+                                <div class="alert alert-success">
+                                    <p><strong> Membre trouvé dans votre association !</strong></p>
+                                    <p>
+                                        <strong>Nom :</strong> <?= htmlspecialchars($user_trouve['prenom'] . ' ' . $user_trouve['nom']) ?><br>
+                                        <strong>Email :</strong> <?= htmlspecialchars($user_trouve['email']) ?><br>
+                                        <strong>Téléphone :</strong> <?= htmlspecialchars($user_trouve['telephone']) ?><br>
+                                        <?php if(!empty($user_trouve['adresse'])): ?>
+                                            <strong>Adresse :</strong> <?= htmlspecialchars($user_trouve['adresse']) ?>
+                                        <?php endif; ?>
+                                    </p>
+                                    <a href="?id=<?= $tontine_id ?>&add_user=<?= $user_trouve['id'] ?>" 
+                                       class="btn btn-success"
+                                       onclick="return confirm('Ajouter ce membre à la tontine ?')">
+                                        <i class="bi bi-person-plus"></i> Ajouter à cette tontine
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <!-- CAS 2 et 3 : Membre pas dans l'association ou inexistant -->
+                                <div class="alert alert-warning">
+                                    <p><i class="bi bi-exclamation-triangle"></i> 
+                                    Aucun membre trouvé avec "<?= htmlspecialchars($search) ?>" dans votre association.</p>
+                                    <p class="mb-0">Vous pouvez créer un nouveau membre avec cet email.</p>
                                 </div>
                                 
-                                <!-- Formulaire de création de nouveau membre -->
+                                <!-- Formulaire de création -->
                                 <div class="card mt-3">
                                     <div class="card-header bg-success text-white">
-                                        <h5 class="mb-0">Créer un nouveau membre</h5>
+                                        <h5 class="mb-0">Créer un nouveau membre pour votre association</h5>
                                     </div>
                                     <div class="card-body">
                                         <form method="POST">
@@ -284,45 +372,18 @@ if(!empty($search)) {
                                                     <label class="form-label">Téléphone</label>
                                                     <input type="tel" name="telephone" class="form-control" required>
                                                 </div>
-                                                <div class="col-md-6 mb-3">
-                                                    <label class="form-label">Adresse / Quartier</label>
-                                                    <input type="text" name="adresse" class="form-control" placeholder="Ex: Bonanjo, Douala">
+                                                <div class="col-12 mb-3">
+                                                    <label class="form-label">Adresse / Quartier (optionnel)</label>
+                                                    <input type="text" name="adresse" class="form-control">
                                                 </div>
                                                 <div class="col-12">
                                                     <button type="submit" class="btn btn-success w-100">
-                                                        <i class="bi bi-person-plus"></i> Créer et ajouter ce membre
+                                                        <i class="bi bi-person-plus"></i> Créer et ajouter à l'association
                                                     </button>
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                </div>
-                                
-                            <?php else: ?>
-                                <div class="list-group">
-                                    <?php foreach($users as $u): ?>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong><?= htmlspecialchars($u['prenom'] . ' ' . $u['nom']) ?></strong>
-                                                <?php if($u['role'] == 'admin'): ?>
-                                                    <span class="badge bg-warning text-dark ms-2">Président</span>
-                                                <?php endif; ?>
-                                                <?php if($u['premiere_connexion']): ?>
-                                                    <span class="badge bg-info ms-2">Nouveau</span>
-                                                <?php endif; ?>
-                                                <br>
-                                                <small class="text-muted">
-                                                    <i class="bi bi-envelope"></i> <?= htmlspecialchars($u['email']) ?> |
-                                                    <i class="bi bi-telephone"></i> <?= htmlspecialchars($u['telephone']) ?>
-                                                </small>
-                                            </div>
-                                            <a href="?id=<?= $tontine_id ?>&add_user=<?= $u['id'] ?>" 
-                                               class="btn btn-success btn-sm"
-                                               onclick="return confirm('Ajouter <?= htmlspecialchars($u['prenom'] . ' ' . $u['nom']) ?> à la tontine ?')">
-                                                <i class="bi bi-person-plus"></i> Ajouter
-                                            </a>
-                                        </div>
-                                    <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
                         <?php else: ?>
@@ -335,5 +396,7 @@ if(!empty($search)) {
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

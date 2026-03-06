@@ -17,6 +17,16 @@ require_once __DIR__ . '/../models/Cotisation.php';
 require_once __DIR__ . '/../models/Seance.php';
 require_once __DIR__ . '/../models/AmendeAppliquee.php';
 
+// Vérifier qu'une association est active
+if(!isset($_SESSION['association_active'])) {
+    // Si pas d'association active, rediriger vers choix
+    header("Location: auth/choisir_association.php");
+    exit();
+}
+
+$association_active = $_SESSION['association_active'];
+$association_nom = $_SESSION['association_nom'] ?? 'Association';
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -42,7 +52,7 @@ if($tontine_active_id) {
     $tontine_active = clone $tontine;
 }
 
-// Pour les membres : récupérer leurs tontines
+// Pour les membres : récupérer leurs tontines (UNIQUEMENT de l'association active)
 $mesTontines = [];
 $totalCotise = 0;
 $amendesImpayees = [];
@@ -50,114 +60,147 @@ $prochaineReunion = null;
 $dernieresCotisations = [];
 
 if($userRole == 'membre') {
-    // Récupérer les tontines du membre
-    $tontinesMembre = $membreTontine->getTontinesByMembre($userId);
+    // Récupérer les tontines du membre pour cette association
+    $query = "SELECT t.* FROM tontines t
+              JOIN membre_tontine mt ON t.id = mt.tontine_id
+              WHERE mt.user_id = :user_id 
+              AND t.association_id = :association_id
+              AND mt.est_actif = 1
+              ORDER BY t.nom";
     
-    while($t = $tontinesMembre->fetch(PDO::FETCH_ASSOC)) {
-        $mesTontines[] = $t;
-        
-        // Récupérer l'ID du membre dans cette tontine
-        $query = "SELECT id FROM membre_tontine 
-                  WHERE user_id = :uid AND tontine_id = :tid";
-        $stmt = $db->prepare($query);
-        $stmt->execute(['uid' => $userId, 'tid' => $t['id']]);
-        $membre = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if($membre) {
-            // Total cotisé (TOUTES les tontines)
-            $queryTotal = "SELECT SUM(montant) as total FROM cotisations 
-                           WHERE membre_tontine_id = :mid AND statut = 'paye'";
-            $stmtTotal = $db->prepare($queryTotal);
-            $stmtTotal->execute(['mid' => $membre['id']]);
-            $total = $stmtTotal->fetch(PDO::FETCH_ASSOC);
-            $totalCotise += ($total['total'] ?? 0);
-            
-            // Amendes impayées
-            $amendes = $amendeAppliquee->getImpayesByMembre($membre['id']);
-            $amendesImpayees = array_merge($amendesImpayees, $amendes);
-            
-            // Dernières cotisations (3 dernières toutes tontines confondues)
-            $queryDernieres = "SELECT c.*, s.date_seance 
-                               FROM cotisations c
-                               JOIN seances s ON c.seance_id = s.id
-                               WHERE c.membre_tontine_id = :mid 
-                               ORDER BY s.date_seance DESC LIMIT 3";
-            $stmtDernieres = $db->prepare($queryDernieres);
-            $stmtDernieres->execute(['mid' => $membre['id']]);
-            while($cot = $stmtDernieres->fetch(PDO::FETCH_ASSOC)) {
-                $dernieresCotisations[] = $cot;
-            }
-            
-            // Prochaine réunion (la plus proche)
-            if(!$prochaineReunion || $t['prochaine_reunion'] < $prochaineReunion) {
-                $prochaineReunion = $t['prochaine_reunion'];
-            }
-        }
-    }
+    $stmt = $db->prepare($query);
+    $stmt->execute([
+        'user_id' => $userId,
+        'association_id' => $association_active
+    ]);
+    $mesTontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculer le total des cotisations pour cette association
+    $query = "SELECT SUM(c.montant) as total 
+              FROM cotisations c
+              JOIN seances s ON c.seance_id = s.id
+              JOIN tontines t ON s.tontine_id = t.id
+              WHERE c.membre_tontine_id IN (
+                  SELECT id FROM membre_tontine 
+                  WHERE user_id = :user_id AND association_id = :association_id
+              ) AND c.statut = 'paye'";
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute([
+        'user_id' => $userId,
+        'association_id' => $association_active
+    ]);
+    $totalCotise = $stmt->fetch()['total'] ?? 0;
+    
+    // Récupérer les amendes impayées pour cette association
+    $query = "SELECT a.*, r.type_amende 
+              FROM amendes_appliquees a
+              JOIN regles_amendes r ON a.regle_amende_id = r.id
+              JOIN seances s ON a.seance_id = s.id
+              JOIN tontines t ON s.tontine_id = t.id
+              WHERE a.membre_tontine_id IN (
+                  SELECT id FROM membre_tontine 
+                  WHERE user_id = :user_id AND association_id = :association_id
+              ) AND a.est_paye = 0
+              ORDER BY a.date_application DESC";
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute([
+        'user_id' => $userId,
+        'association_id' => $association_active
+    ]);
+    $amendesImpayees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Dernières cotisations pour cette association
+    $query = "SELECT c.*, s.date_seance 
+              FROM cotisations c
+              JOIN seances s ON c.seance_id = s.id
+              JOIN tontines t ON s.tontine_id = t.id
+              WHERE c.membre_tontine_id IN (
+                  SELECT id FROM membre_tontine 
+                  WHERE user_id = :user_id AND association_id = :association_id
+              )
+              ORDER BY s.date_seance DESC LIMIT 5";
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute([
+        'user_id' => $userId,
+        'association_id' => $association_active
+    ]);
+    $dernieresCotisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Prochaine réunion pour cette association
+    $query = "SELECT MIN(prochaine_reunion) as prochaine 
+              FROM tontines 
+              WHERE association_id = :association_id";
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute(['association_id' => $association_active]);
+    $prochaineReunion = $stmt->fetch()['prochaine'];
 }
 
-// Pour le président : statistiques globales
+// Pour le président : statistiques globales de l'association
 $statsPresident = [];
 $dernieresSeances = [];
 $membresAvecAmendes = [];
 
 if($userRole == 'admin') {
-    // Nombre de tontines créées
-    $queryTontines = "SELECT COUNT(*) as total FROM tontines WHERE admin_id = :aid";
+    // Nombre de tontines créées dans cette association
+    $queryTontines = "SELECT COUNT(*) as total FROM tontines 
+                      WHERE association_id = :aid";
     $stmtTontines = $db->prepare($queryTontines);
-    $stmtTontines->execute(['aid' => $userId]);
+    $stmtTontines->execute(['aid' => $association_active]);
     $statsPresident['tontines'] = $stmtTontines->fetch()['total'];
     
-    // Nombre total de membres dans toutes ses tontines
+    // Nombre total de membres actifs dans cette association
     $queryMembres = "SELECT COUNT(DISTINCT mt.id) as total 
                      FROM membre_tontine mt
-                     JOIN tontines t ON mt.tontine_id = t.id
-                     WHERE t.admin_id = :aid AND mt.est_actif = 1";
+                     WHERE mt.association_id = :aid AND mt.est_actif = 1";
     $stmtMembres = $db->prepare($queryMembres);
-    $stmtMembres->execute(['aid' => $userId]);
+    $stmtMembres->execute(['aid' => $association_active]);
     $statsPresident['membres'] = $stmtMembres->fetch()['total'];
     
-    // Total des cotisations collectées
+    // Total des cotisations collectées dans cette association
     $queryCotisations = "SELECT SUM(c.montant) as total 
                          FROM cotisations c
                          JOIN seances s ON c.seance_id = s.id
                          JOIN tontines t ON s.tontine_id = t.id
-                         WHERE t.admin_id = :aid AND c.statut = 'paye'";
+                         WHERE t.association_id = :aid AND c.statut = 'paye'";
     $stmtCotisations = $db->prepare($queryCotisations);
-    $stmtCotisations->execute(['aid' => $userId]);
+    $stmtCotisations->execute(['aid' => $association_active]);
     $statsPresident['total_cotise'] = $stmtCotisations->fetch()['total'] ?? 0;
     
-    // Total des amendes collectées
+    // Total des amendes collectées dans cette association
     $queryAmendes = "SELECT SUM(a.montant) as total 
                      FROM amendes_appliquees a
                      JOIN seances s ON a.seance_id = s.id
                      JOIN tontines t ON s.tontine_id = t.id
-                     WHERE t.admin_id = :aid AND a.est_paye = 1";
+                     WHERE t.association_id = :aid AND a.est_paye = 1";
     $stmtAmendes = $db->prepare($queryAmendes);
-    $stmtAmendes->execute(['aid' => $userId]);
+    $stmtAmendes->execute(['aid' => $association_active]);
     $statsPresident['total_amendes'] = $stmtAmendes->fetch()['total'] ?? 0;
     
-    // Dernières séances
+    // Dernières séances dans cette association
     $querySeances = "SELECT s.*, t.nom as tontine_nom 
                      FROM seances s
                      JOIN tontines t ON s.tontine_id = t.id
-                     WHERE t.admin_id = :aid
+                     WHERE t.association_id = :aid
                      ORDER BY s.date_seance DESC LIMIT 5";
     $stmtSeances = $db->prepare($querySeances);
-    $stmtSeances->execute(['aid' => $userId]);
+    $stmtSeances->execute(['aid' => $association_active]);
     $dernieresSeances = $stmtSeances->fetchAll(PDO::FETCH_ASSOC);
     
-    // Membres avec amendes impayées
+    // Membres avec amendes impayées dans cette association
     $queryMembresAmendes = "SELECT DISTINCT u.nom, u.prenom, a.montant, a.date_application
                             FROM amendes_appliquees a
                             JOIN membre_tontine mt ON a.membre_tontine_id = mt.id
                             JOIN users u ON mt.user_id = u.id
                             JOIN seances s ON a.seance_id = s.id
                             JOIN tontines t ON s.tontine_id = t.id
-                            WHERE t.admin_id = :aid AND a.est_paye = 0 AND mt.est_actif = 1
+                            WHERE t.association_id = :aid AND a.est_paye = 0 AND mt.est_actif = 1
                             ORDER BY a.date_application DESC";
     $stmtMembresAmendes = $db->prepare($queryMembresAmendes);
-    $stmtMembresAmendes->execute(['aid' => $userId]);
+    $stmtMembresAmendes->execute(['aid' => $association_active]);
     $membresAvecAmendes = $stmtMembresAmendes->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
@@ -166,7 +209,7 @@ if($userRole == 'admin') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de bord - Tontine</title>
+    <title>Tableau de bord - <?= htmlspecialchars($association_nom) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
@@ -221,6 +264,13 @@ if($userRole == 'admin') {
             text-decoration: none;
             color: inherit;
         }
+        .association-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -236,11 +286,9 @@ if($userRole == 'admin') {
                 <span class="nav-link text-white">
                     <i class="bi bi-tag"></i> <?= $user->role == 'admin' ? 'Président' : 'Membre' ?>
                 </span>
-                <?php if(!empty($user->nom_association)): ?>
-                    <span class="nav-link text-white">
-                        <i class="bi bi-building"></i> <?= htmlspecialchars($user->nom_association) ?>
-                    </span>
-                <?php endif; ?>
+                <span class="nav-link text-white">
+                    <i class="bi bi-building"></i> <?= htmlspecialchars($association_nom) ?>
+                </span>
                 <?php if($userRole == 'membre' && $tontine_active): ?>
                     <span class="nav-link text-white">
                         <i class="bi bi-bank2"></i> <?= htmlspecialchars($tontine_active->nom) ?>
@@ -257,15 +305,8 @@ if($userRole == 'admin') {
 
         <!-- Message de bienvenue -->
         <div class="alert alert-info">
-            <h4 class="alert-heading">
-                <i class="bi bi-hand-thumbs-up"></i> Bonjour, <?= htmlspecialchars($user->prenom) ?> !
-                <?php if(!empty($user->nom_association)): ?>
-                    
-                    <small class="d-block">Bienvenue dans votre espace pour 
-                    <strong><?= htmlspecialchars($user->nom_association) ?></strong></small>
-                <?php endif; ?>
-            </h4>
-            <p class="mb-0">Bienvenue dans votre espace personnel.</p>
+            <h4 class="alert-heading"><i class="bi bi-hand-thumbs-up"></i> Bonjour, <?= htmlspecialchars($user->prenom) ?> !</h4>
+            <p class="mb-0">Bienvenue dans l'espace de <strong><?= htmlspecialchars($association_nom) ?></strong></p>
         </div>
 
         <?php if($userRole == 'membre' && $tontine_active): ?>
@@ -296,7 +337,7 @@ if($userRole == 'admin') {
                     <div class="stat-card text-center">
                         <div class="stat-icon"><i class="bi bi-bank2"></i></div>
                         <div class="stat-number"><?= $statsPresident['tontines'] ?></div>
-                        <div class="stat-label">Tontines créées</div>
+                        <div class="stat-label">Tontines</div>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
@@ -317,7 +358,7 @@ if($userRole == 'admin') {
                     <div class="stat-card text-center">
                         <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
                         <div class="stat-number"><?= number_format($statsPresident['total_amendes'], 0, ',', ' ') ?> F</div>
-                        <div class="stat-label">Amendes perçues</div>
+                        <div class="stat-label">Amendes</div>
                     </div>
                 </div>
             </div>
@@ -421,12 +462,12 @@ if($userRole == 'admin') {
                 </div>
             </div>
 
-            <!-- MES TONTINES (AVEC LIENS CLIQUABLES) -->
-            <h4 class="section-title"><i class="bi bi-grid-3x3-gap-fill"></i> Mes tontines</h4>
+            <!-- MES TONTINES -->
+            <h4 class="section-title"><i class="bi bi-grid-3x3-gap-fill"></i> Mes tontines dans <?= htmlspecialchars($association_nom) ?></h4>
             <div class="row mb-4">
                 <?php if(empty($mesTontines)): ?>
                     <div class="col-12">
-                        <div class="alert alert-info">Vous n'êtes membre d'aucune tontine pour le moment.</div>
+                        <div class="alert alert-info">Vous n'êtes membre d'aucune tontine dans cette association.</div>
                     </div>
                 <?php else: ?>
                     <?php foreach($mesTontines as $t): ?>
@@ -437,9 +478,9 @@ if($userRole == 'admin') {
                                         <h5 class="mb-0"><?= htmlspecialchars($t['nom']) ?></h5>
                                     </div>
                                     <div class="card-body">
-                                        <p class="mb-1"><strong>Montant:</strong> <?= number_format($t['montant_cotisation'], 0, ',', ' ') ?> F</p>
-                                        <p class="mb-1"><strong>Réunions:</strong> <?= htmlspecialchars($t['jour_reunion']) ?></p>
-                                        <p class="mb-0"><strong>Prochain tour:</strong> À déterminer</p>
+                                        <p class="mb-1"><strong> Montant:</strong> <?= number_format($t['montant_cotisation'], 0, ',', ' ') ?> F</p>
+                                        <p class="mb-1"><strong> Réunions:</strong> <?= htmlspecialchars($t['jour_reunion']) ?></p>
+                                        <p class="mb-0"><strong> Prochain tour:</strong> À déterminer</p>
                                     </div>
                                 </div>
                             </a>

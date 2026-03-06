@@ -78,13 +78,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $code = $passwordReset->createCode($_SESSION['reset_user_id']);
             
             if($code) {
+                
                 // Stocker l'association choisie
                 $_SESSION['reset_association_id'] = $association_id;
                 $_SESSION['reset_association_nom'] = $assoc['nom'];
+                $_SESSION['debug_code'] = $code; // Stocker le code pour le test
                 
-                // MODE TEST : Afficher le code directement
-                $_SESSION['debug_code'] = $code;
-                
+                // Rediriger vers la page de saisie du code
                 header("Location: saisir_code.php");
                 exit();
             }
@@ -108,13 +108,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             align-items: center;
             justify-content: center;
             font-family: 'Inter', sans-serif;
-            padding: 20px;
         }
         .card {
             border-radius: 20px;
             border: none;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 500px;
+            max-width: 450px;
             width: 100%;
             overflow: hidden;
         }
@@ -127,12 +126,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         .card-header h2 {
             font-weight: 700;
             margin-bottom: 10px;
-            font-size: 32px;
-        }
-        .card-header p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 16px;
         }
         .card-body {
             padding: 40px;
@@ -141,11 +134,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         .btn-primary {
             background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
             border: none;
-            padding: 14px;
+            padding: 12px;
             width: 100%;
             border-radius: 10px;
             font-weight: 600;
-            font-size: 16px;
             transition: all 0.3s;
         }
         .btn-primary:hover {
@@ -157,10 +149,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #6B46C1;
             border: 2px solid #6B46C1;
             border-radius: 10px;
-            padding: 12px;
+            padding: 10px;
             width: 100%;
             margin-top: 10px;
-            font-weight: 600;
             transition: all 0.3s;
         }
         .btn-back:hover {
@@ -170,34 +161,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         .form-control, .form-select {
             border-radius: 10px;
             border: 2px solid #e0e0e0;
-            padding: 12px 15px;
-            font-size: 15px;
+            padding: 12px;
             transition: all 0.3s;
         }
         .form-control:focus, .form-select:focus {
             border-color: #6B46C1;
             box-shadow: none;
-            outline: none;
         }
         .alert {
             border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 25px;
-            border: none;
-        }
-        .form-label {
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        .text-muted {
-            color: #6c757d !important;
-        }
-        a {
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
@@ -205,20 +177,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="card">
         <div class="card-header">
             <h2><i class="fas fa-hand-holding-usd me-2"></i>TONTONTINE</h2>
-            <p><?= $step == 1 ? 'Mot de passe oublié' : 'Choisissez votre association' ?></p>
+            <p class="mb-0"><?= $step == 1 ? 'Mot de passe oublié' : 'Choisissez votre association' ?></p>
         </div>
         <div class="card-body">
             
             <?php if($error): ?>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if(isset($message) && $message): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($message) ?>
-                </div>
+                <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
             <?php if($step == 1): ?>
@@ -227,19 +191,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="mb-4">
                         <label class="form-label"> Votre email</label>
                         <input type="email" name="email" class="form-control" 
-                               placeholder="exemple@email.com" 
-                               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                               required>
-                        <small class="text-muted">Nous enverrons un code de validation à cette adresse</small>
+                               placeholder="exemple@email.com" required>
                     </div>
                     
                     <button type="submit" name="check_email" class="btn-primary">
-                        <i class="fas fa-arrow-right me-2"></i>Vérifier mon email
+                        Vérifier mon email
                     </button>
                     
                     <div class="text-center mt-3">
                         <a href="login.php" class="text-decoration-none" style="color: #6B46C1;">
-                            <i class="fas fa-arrow-left me-1"></i>Retour à la connexion
+                            Retour à la connexion
                         </a>
                     </div>
                 </form>
@@ -259,7 +220,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     
                     <button type="submit" name="send_code" class="btn-primary">
-                        <i class="fas fa-envelope me-2"></i>Envoyer le code
+                        Envoyer le code
                     </button>
                     
                     <button type="button" onclick="window.location.href='mot_de_passe_oublie.php'" class="btn-back">
@@ -268,11 +229,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </form>
             <?php endif; ?>
 
-            <div class="text-center mt-3">
-                <a href="register.php" class="text-muted small">
-                    <i class="fas fa-user-plus me-1"></i>Pas encore de compte ? Inscrivez-vous
-                </a>
-            </div>
         </div>
     </div>
 </body>

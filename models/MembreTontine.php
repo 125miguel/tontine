@@ -13,6 +13,7 @@ class MembreTontine {
     public $ordre_tour;
     public $date_adhesion;
     public $est_actif;
+    public $association_id;  
 
     public function __construct($db) {
         $this->conn = $db;
@@ -21,43 +22,47 @@ class MembreTontine {
     /**
      * Ajouter un membre à une tontine
      */
-    public function ajouterMembre() {
-        // Vérifier si le membre est déjà dans la tontine
-        if($this->estDejaMembre()) {
-            return false;
-        }
-
-        $query = "INSERT INTO " . $this->table . "
-                  (user_id, tontine_id, ordre_tour)
-                  VALUES (:user_id, :tontine_id, :ordre_tour)";
-        
-        $stmt = $this->conn->prepare($query);
-        
-        $stmt->bindParam(":user_id", $this->user_id);
-        $stmt->bindParam(":tontine_id", $this->tontine_id);
-        $stmt->bindParam(":ordre_tour", $this->ordre_tour);
-        
-        if($stmt->execute()) {
-            return true;
-        }
+   /**
+ * Ajouter un membre à une tontine
+ */
+public function ajouterMembre() {
+    // Vérifier si le membre est déjà dans la tontine
+    if($this->estDejaMembre()) {
         return false;
     }
 
+    $query = "INSERT INTO " . $this->table . "
+              (user_id, tontine_id, association_id, ordre_tour)
+              VALUES (:user_id, :tontine_id, :association_id, :ordre_tour)";
+    
+    $stmt = $this->conn->prepare($query);
+    
+    $stmt->bindParam(":user_id", $this->user_id);
+    $stmt->bindParam(":tontine_id", $this->tontine_id);
+    $stmt->bindParam(":association_id", $this->association_id);
+    $stmt->bindParam(":ordre_tour", $this->ordre_tour);
+    
+    if($stmt->execute()) {
+        return true;
+    }
+    return false;
+}
+
     /**
-     * Vérifier si un membre est déjà dans la tontine
-     */
+    * Vérifier si un membre est déjà dans la tontine
+    */
     public function estDejaMembre() {
         $query = "SELECT id FROM " . $this->table . " 
-                  WHERE user_id = :user_id AND tontine_id = :tontine_id";
+                WHERE user_id = :user_id AND tontine_id = :tontine_id AND association_id = :association_id";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":user_id", $this->user_id);
         $stmt->bindParam(":tontine_id", $this->tontine_id);
+        $stmt->bindParam(":association_id", $this->association_id);
         $stmt->execute();
         
         return $stmt->rowCount() > 0;
     }
-
     /**
      * Récupérer tous les membres d'une tontine
      */
