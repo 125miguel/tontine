@@ -62,15 +62,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Générer le même mot de passe pour l'association
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
                 
-                $query = "INSERT INTO membres_association (user_id, association_id, password, premiere_connexion) 
-                        VALUES (:user_id, :association_id, :password, 0)";
-                $stmt = $db->prepare($query);
-                $stmt->execute([
-                    'user_id' => $nouvel_admin_id,
-                    'association_id' => $association_id,
-                    'password' => $hashed
-                ]);
-                
+              $query = "INSERT INTO membres_association (user_id, association_id, password, role) 
+                        VALUES (:user_id, :association_id, :password, 'admin')";
+              $stmt = $db->prepare($query);
+              $stmt->execute([
+                'user_id' => $nouvel_admin_id,
+                'association_id' => $association_id,
+                'password' => $hashed
+            ]);
                 $_SESSION['register_success'] = "Inscription réussie ! Connectez-vous avec vos identifiants.";
                 header("Location: login.php");
                 exit();

@@ -77,7 +77,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             // CAS 2 : L'utilisateur existe déjà
             $user_id = $user_existant['id'];
             
-            // Vérifier s'il est déjà dans l'association (ne devrait pas arriver)
+            // Vérifier s'il est déjà dans l'association
             $query = "SELECT id FROM membres_association 
                       WHERE user_id = :uid AND association_id = :aid";
             $stmt = $db->prepare($query);
@@ -111,12 +111,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             $user_id = $db->lastInsertId();
         }
         
-        // Ajouter à l'association (pour CAS 2 et 3)
+        // Ajouter à l'association (pour CAS 2 et 3) avec rôle 'membre'
         $temp_password = $temp_password ?? genererMotDePasse(6);
         $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
         
-        $query = "INSERT INTO membres_association (user_id, association_id, password) 
-                  VALUES (:uid, :aid, :password)";
+        $query = "INSERT INTO membres_association (user_id, association_id, password, role) 
+                  VALUES (:uid, :aid, :password, 'membre')";
         $stmt = $db->prepare($query);
         $stmt->execute([
             'uid' => $user_id,
@@ -281,7 +281,7 @@ if(!empty($search)) {
                             <span class="password-value"><?= $_SESSION['temp_password'] ?></span>
                         </p>
                         <p class="mb-0">
-                            <small>⚠️ À communiquer au membre pour qu'il se connecte à votre association.</small>
+                            <small> À communiquer au membre pour qu'il se connecte à votre association.</small>
                         </p>
                     </div>
                     <?php 
@@ -309,7 +309,7 @@ if(!empty($search)) {
                             <input type="hidden" name="id" value="<?= $tontine_id ?>">
                             <div class="input-group">
                                 <input type="text" name="search" class="form-control" 
-                                       placeholder="Rechercher par email ou téléphone..."
+                                       placeholder="Rechercher par nom, email ou téléphone..."
                                        value="<?= htmlspecialchars($search) ?>">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-search"></i> Rechercher
@@ -343,7 +343,7 @@ if(!empty($search)) {
                                 <div class="alert alert-warning">
                                     <p><i class="bi bi-exclamation-triangle"></i> 
                                     Aucun membre trouvé avec "<?= htmlspecialchars($search) ?>" dans votre association.</p>
-                                    <p class="mb-0">Vous pouvez créer un nouveau membre avec cet email.</p>
+                                    <p class="mb-0">Vous pouvez créer un nouveau membre avec ces informations.</p>
                                 </div>
                                 
                                 <!-- Formulaire de création -->
@@ -366,15 +366,15 @@ if(!empty($search)) {
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">Email</label>
                                                     <input type="email" name="email" class="form-control" 
-                                                           value="<?= htmlspecialchars($search) ?>" readonly>
+                                                           value="<?= htmlspecialchars($search) ?>" placeholder="exemple@email.com" required>
                                                 </div>
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">Téléphone</label>
-                                                    <input type="tel" name="telephone" class="form-control" required>
+                                                    <input type="tel" name="telephone" class="form-control" placeholder="6XXXXXXXX" required>
                                                 </div>
                                                 <div class="col-12 mb-3">
                                                     <label class="form-label">Adresse / Quartier (optionnel)</label>
-                                                    <input type="text" name="adresse" class="form-control">
+                                                    <input type="text" name="adresse" class="form-control" placeholder="Ex: Bonanjo, Douala">
                                                 </div>
                                                 <div class="col-12">
                                                     <button type="submit" class="btn btn-success w-100">

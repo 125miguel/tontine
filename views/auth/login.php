@@ -75,10 +75,10 @@ if(isset($_POST['login_association'])) {
         $db = $database->getConnection();
         
         // Vérifier le mot de passe pour cette association
-        $query = "SELECT ma.*, u.nom, u.prenom, u.email, u.telephone, u.role 
-                  FROM membres_association ma
-                  JOIN users u ON ma.user_id = u.id
-                  WHERE ma.user_id = :user_id AND ma.association_id = :association_id";
+        $query = "SELECT ma.*, u.nom, u.prenom, u.email, u.telephone, u.role as user_role 
+          FROM membres_association ma
+          JOIN users u ON ma.user_id = u.id
+          WHERE ma.user_id = :user_id AND ma.association_id = :association_id";
         $stmt = $db->prepare($query);
         $stmt->execute([
             'user_id' => $_SESSION['temp_user_id'],
@@ -101,6 +101,7 @@ if(isset($_POST['login_association'])) {
             $_SESSION['user_telephone'] = $membre['telephone'];
             $_SESSION['association_active'] = $association_id;
             $_SESSION['association_nom'] = $assoc['nom'];
+            $_SESSION['association_role'] = $membre['role'];
             
             // Nettoyer les variables temporaires
             unset($_SESSION['temp_user_id']);

@@ -2,6 +2,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+
 session_start();
 
 if(!isset($_SESSION['user_id'])) {
@@ -41,7 +42,7 @@ $tontine = new Tontine($db);
 
 // Données communes
 $userId = $_SESSION['user_id'];
-$userRole = $_SESSION['user_role'];
+$userRole = $_SESSION['association_role'] ?? 'membre';
 
 // Récupérer la tontine active si elle existe
 $tontine_active = null;

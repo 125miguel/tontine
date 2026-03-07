@@ -205,5 +205,25 @@ public function create() {
             'id' => $this->id
         ]);
     }
+    /**
+     * Vérifier si la tontine a des activités (séances ou cotisations)
+     */
+    public function aDesActivites() {
+        // Vérifier s'il y a des séances
+        $query = "SELECT id FROM seances WHERE tontine_id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['id' => $this->id]);
+        if($stmt->rowCount() > 0) {
+            return true;
+        }
+        
+        // Vérifier s'il y a des cotisations
+        $query = "SELECT c.id FROM cotisations c
+                JOIN seances s ON c.seance_id = s.id
+                WHERE s.tontine_id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['id' => $this->id]);
+        return $stmt->rowCount() > 0;
+    }
 }
 ?>

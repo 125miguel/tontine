@@ -158,5 +158,31 @@ public function ajouterMembre() {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['total'];
     }
+    /**
+    * Vérifier si un membre a des activités (cotisations, amendes)
+    */
+    public function aDesActivites($membre_tontine_id) {
+        // Vérifier les cotisations
+        $query = "SELECT id FROM cotisations WHERE membre_tontine_id = :mid LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        if($stmt->rowCount() > 0) {
+            return true;
+        }
+        
+        // Vérifier les amendes
+        $query = "SELECT id FROM amendes_appliquees WHERE membre_tontine_id = :mid LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        if($stmt->rowCount() > 0) {
+            return true;
+        }
+        
+        // Vérifier s'il a été bénéficiaire
+        $query = "SELECT id FROM seances WHERE beneficiaire_id = :mid LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        return $stmt->rowCount() > 0;
+    }
 }
 ?>
