@@ -7,7 +7,16 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/PasswordReset.php';
-require_once __DIR__ . '/../../helpers/mail_helper.php';
+require_once __DIR__ . '/../../config/mail.php';
+
+// Inclusion de PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
+require_once __DIR__ . '/../../vendor/phpmailer/src/PHPMailer.php';
+require_once __DIR__ . '/../../vendor/phpmailer/src/SMTP.php';
+require_once __DIR__ . '/../../vendor/phpmailer/src/Exception.php';
 
 $message = '';
 $error = '';
@@ -60,8 +69,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     if(isset($_POST['send_code'])) {
         // ÉTAPE 2 : Envoyer le code pour l'association choisie
         $association_id = $_POST['association_id'] ?? 0;
+        $email = $_SESSION['reset_email'] ?? '';
         
-        if(!$association_id) {
+        if(empty($email)) {
+            $error = "Session expirée. Veuillez recommencer.";
+            header("refresh:2;url=mot_de_passe_oublie.php");
+        } else if(!$association_id) {
             $error = "Veuillez sélectionner une association";
         } else {
             $database = new Database();
@@ -82,11 +95,158 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['reset_association_id'] = $association_id;
                 $_SESSION['reset_association_nom'] = $assoc['nom'];
                 
-                // MODE TEST : Afficher le code directement
-                $_SESSION['debug_code'] = $code;
+                // Préparer l'email
+                $sujet = " Code de réinitialisation - TONTONTINE";
                 
-                header("Location: saisir_code.php");
-                exit();
+                // Message HTML
+                $message_html = "
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='UTF-8'>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            background: #f5f5f5;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .container {
+                            max-width: 600px;
+                            margin: 20px auto;
+                            background: white;
+                            border-radius: 15px;
+                            overflow: hidden;
+                            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.2);
+                        }
+                        .header {
+                            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+                            color: white;
+                            padding: 40px 30px;
+                            text-align: center;
+                        }
+                        .header h1 {
+                            margin: 0;
+                            font-size: 28px;
+                            font-weight: 700;
+                        }
+                        .content {
+                            padding: 40px 30px;
+                            background: white;
+                        }
+                        .code-box {
+                            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+                            border: 2px dashed #6B46C1;
+                            border-radius: 15px;
+                            padding: 30px;
+                            text-align: center;
+                            margin: 30px 0;
+                        }
+                        .code {
+                            font-size: 48px;
+                            font-weight: 800;
+                            letter-spacing: 10px;
+                            color: #6B46C1;
+                            background: white;
+                            padding: 20px 30px;
+                            border-radius: 10px;
+                            display: inline-block;
+                            box-shadow: 0 5px 20px rgba(107, 70, 193, 0.2);
+                        }
+                        .info {
+                            background: #f8f9fa;
+                            border-left: 4px solid #FF8A4C;
+                            padding: 15px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                        }
+                        .footer {
+                            text-align: center;
+                            padding: 20px;
+                            background: #f8f9fa;
+                            color: #666;
+                            font-size: 12px;
+                        }
+                        .association-name {
+                            font-weight: 700;
+                            color: #FF8A4C;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1> TONTONTINE</h1>
+                            <p>Réinitialisation de votre mot de passe</p>
+                        </div>
+                        <div class='content'>
+                            <p>Bonjour,</p>
+                            <p>Vous avez demandé à réinitialiser votre mot de passe pour l'association 
+                            <span class='association-name'>" . htmlspecialchars($assoc['nom']) . "</span>.</p>
+                            
+                            <div class='code-box'>
+                                <div class='code'>$code</div>
+                            </div>
+                            
+                            <div class='info'>
+                                <p style='margin:0;'><strong> Ce code est valable 15 minutes.</strong></p>
+                                <p style='margin:10px 0 0;'>Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
+                            </div>
+                            
+                            <p>Une fois connecté, vous pourrez choisir un nouveau mot de passe.</p>
+                        </div>
+                        <div class='footer'>
+                            <p>© 2025 TONTONTINE. Tous droits réservés.</p>
+                            <p style='margin:5px 0 0;'>Application de gestion de tontines</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                ";
+                
+                // Message texte brut
+                $message_texte = "Bonjour,\n\n";
+                $message_texte .= "Vous avez demandé à réinitialiser votre mot de passe pour l'association " . $assoc['nom'] . ".\n\n";
+                $message_texte .= "Votre code de validation est : $code\n\n";
+                $message_texte .= "Ce code est valable 15 minutes.\n\n";
+                $message_texte .= "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\n";
+                $message_texte .= "Cordialement,\nL'équipe TONTONTINE";
+                
+                // Envoyer l'email avec PHPMailer
+                $mail = new PHPMailer(true);
+                
+                try {
+                    // Configuration du serveur SMTP
+                    $mail->isSMTP();
+                    $mail->Host       = SMTP_HOST;
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = SMTP_USER;
+                    $mail->Password   = SMTP_PASS;
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = SMTP_PORT;
+                    $mail->CharSet    = 'UTF-8';
+                    
+                    // Expéditeur et destinataire
+                    $mail->setFrom(SMTP_FROM, SMTP_FROM_NAME);
+                    $mail->addAddress($email);
+                    
+                    // Contenu
+                    $mail->isHTML(true);
+                    $mail->Subject = $sujet;
+                    $mail->Body    = $message_html;
+                    $mail->AltBody = $message_texte;
+                    
+                    $mail->send();
+                    
+                    // Redirection après succès
+                    header("Location: saisir_code.php");
+                    exit();
+                    
+                } catch (Exception $e) {
+                    $error = " Erreur lors de l'envoi de l'email : " . $mail->ErrorInfo;
+                }
+            } else {
+                $error = " Erreur lors de la génération du code";
             }
         }
     }

@@ -124,18 +124,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             <p class="mb-0">Saisissez votre code</p>
         </div>
         <div class="card-body">
-            
-            <?php if(isset($_SESSION['debug_code'])): ?>
-                <div class="alert alert-info text-center">
-                    <h5><i class="fas fa-flask"></i> MODE TEST</h5>
-                    <p>Code de validation :</p>
-                    <div style="font-size: 48px; font-weight: bold; letter-spacing: 5px; color: #6B46C1;">
-                        <?= $_SESSION['debug_code'] ?>
-                    </div>
-                    <p class="mt-2 mb-0"><small>Ce code est affiché car l'envoi d'email n'est pas configuré.</small></p>
-                </div>
-                <?php unset($_SESSION['debug_code']); ?>
-            <?php endif; ?>
 
             <?php if($error): ?>
                 <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>

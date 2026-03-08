@@ -41,8 +41,16 @@ class Notification {
      */
     public function rappelReunion($tontine_id, $date_reunion) {
         // Récupérer les infos de la tontine
+        require_once __DIR__ . '/Tontine.php';
         $tontine = new Tontine($this->conn);
         $tontine->getById($tontine_id);
+        
+        // Récupérer le nom de l'association
+        $query = "SELECT nom FROM associations WHERE id = :aid";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['aid' => $tontine->association_id]);
+        $assoc = $stmt->fetch(PDO::FETCH_ASSOC);
+        $association_nom = $assoc['nom'] ?? 'Association';
         
         // Récupérer tous les membres actifs
         $query = "SELECT u.email, u.prenom, u.nom 
@@ -59,36 +67,86 @@ class Notification {
         }
         
         // Sujet et message commun
-        $sujet = "Rappel : Réunion " . $tontine->nom;
+        $sujet = " Rappel : Réunion " . $tontine->nom . " - " . $association_nom;
         $date_formatee = date('d/m/Y', strtotime($date_reunion));
         
         $message_base = "
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset='UTF-8'>
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                .button { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; }
-                .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
-                .details { background: white; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #f5f5f5;
+                    margin: 0;
+                    padding: 0;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 20px auto;
+                    background: white;
+                    border-radius: 15px;
+                    overflow: hidden;
+                    box-shadow: 0 10px 40px rgba(107, 70, 193, 0.2);
+                }
+                .header {
+                    background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+                    color: white;
+                    padding: 40px 30px;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 28px;
+                    font-weight: 700;
+                }
+                .content {
+                    padding: 40px 30px;
+                    background: white;
+                }
+                .details {
+                    background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+                    padding: 25px;
+                    border-radius: 10px;
+                    margin: 25px 0;
+                    border-left: 4px solid #FF8A4C;
+                }
+                .details p {
+                    margin: 10px 0;
+                    font-size: 16px;
+                }
+                .details strong {
+                    color: #6B46C1;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    color: #666;
+                    font-size: 12px;
+                }
+                .association-name {
+                    font-weight: 700;
+                    color: #FF8A4C;
+                }
             </style>
         </head>
         <body>
             <div class='container'>
                 <div class='header'>
-                    <h2>Rappel de réunion</h2>
+                    <h1> TONTONTINE</h1>
+                    <p>Rappel de réunion</p>
                 </div>
                 <div class='content'>
                     <p>Bonjour <strong>{PRENOM}</strong>,</p>
-                    <p>Ceci est un rappel pour la prochaine réunion de la tontine <strong>{TONTINE}</strong>.</p>
+                    <p>Ceci est un rappel pour la prochaine réunion de la tontine <strong>{TONTINE}</strong> 
+                    de l'association <span class='association-name'>{ASSOCIATION}</span>.</p>
                     
                     <div class='details'>
-                        <p><strong>Date :</strong> {DATE}</p>
-                        <p><strong>Montant :</strong> {MONTANT} FCFA</p>
-                        <p><strong>Lieu :</strong> À confirmer</p>
+                        <p><strong> Date :</strong> {DATE}</p>
+                        <p><strong> Montant :</strong> {MONTANT} FCFA</p>
+                        <p><strong> Lieu :</strong> À confirmer</p>
                     </div>
                     
                     <p>Merci de prévoir votre cotisation.</p>
@@ -96,7 +154,8 @@ class Notification {
                     <p>Cordialement,<br>Votre président</p>
                 </div>
                 <div class='footer'>
-                    <p>© 2025 Tontine App. Tous droits réservés.</p>
+                    <p>© 2025 TONTONTINE. Tous droits réservés.</p>
+                    <p style='margin:5px 0 0;'>Application de gestion de tontines</p>
                 </div>
             </div>
         </body>
@@ -108,8 +167,14 @@ class Notification {
         foreach($membres as $membre) {
             // Personnaliser le message
             $message = str_replace(
-                ['{PRENOM}', '{TONTINE}', '{DATE}', '{MONTANT}'],
-                [$membre['prenom'], $tontine->nom, $date_formatee, number_format($tontine->montant_cotisation, 0, ',', ' ')],
+                ['{PRENOM}', '{TONTINE}', '{ASSOCIATION}', '{DATE}', '{MONTANT}'],
+                [
+                    $membre['prenom'],
+                    $tontine->nom,
+                    $association_nom,
+                    $date_formatee,
+                    number_format($tontine->montant_cotisation, 0, ',', ' ')
+                ],
                 $message_base
             );
             
@@ -126,7 +191,7 @@ class Notification {
      */
     public function rappelImpaye($tontine_id, $membre_id, $montant, $date_seance) {
         // Récupérer les infos du membre
-        $query = "SELECT u.email, u.prenom, u.nom, t.nom as tontine_nom
+        $query = "SELECT u.email, u.prenom, u.nom, t.nom as tontine_nom, t.association_id
                   FROM membre_tontine mt
                   JOIN users u ON mt.user_id = u.id
                   JOIN tontines t ON mt.tontine_id = t.id
@@ -140,43 +205,101 @@ class Notification {
             return false;
         }
         
-        $sujet = "Rappel : Cotisation impayée - " . $membre['tontine_nom'];
+        // Récupérer le nom de l'association
+        $query = "SELECT nom FROM associations WHERE id = :aid";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['aid' => $membre['association_id']]);
+        $assoc = $stmt->fetch(PDO::FETCH_ASSOC);
+        $association_nom = $assoc['nom'] ?? 'Association';
+        
+        $sujet = " Rappel : Cotisation impayée - " . $membre['tontine_nom'];
         
         $message = "
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset='UTF-8'>
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #ff6b6b 0%, #c44545 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                .amount { font-size: 24px; font-weight: bold; color: #c44545; text-align: center; padding: 20px; background: white; border-radius: 5px; margin: 20px 0; }
-                .button { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; }
-                .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #f5f5f5;
+                    margin: 0;
+                    padding: 0;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 20px auto;
+                    background: white;
+                    border-radius: 15px;
+                    overflow: hidden;
+                    box-shadow: 0 10px 40px rgba(107, 70, 193, 0.2);
+                }
+                .header {
+                    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+                    color: white;
+                    padding: 40px 30px;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 28px;
+                    font-weight: 700;
+                }
+                .content {
+                    padding: 40px 30px;
+                    background: white;
+                }
+                .amount-box {
+                    background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+                    padding: 25px;
+                    border-radius: 10px;
+                    margin: 25px 0;
+                    text-align: center;
+                    border-left: 4px solid #dc3545;
+                }
+                .amount {
+                    font-size: 36px;
+                    font-weight: 800;
+                    color: #dc3545;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    color: #666;
+                    font-size: 12px;
+                }
+                .association-name {
+                    font-weight: 700;
+                    color: #FF8A4C;
+                }
             </style>
         </head>
         <body>
             <div class='container'>
                 <div class='header'>
-                    <h2>Rappel de cotisation impayée</h2>
+                    <h1> TONTONTINE</h1>
+                    <p>Rappel de cotisation impayée</p>
                 </div>
                 <div class='content'>
                     <p>Bonjour <strong>{$membre['prenom']}</strong>,</p>
-                    <p>Notre système indique que vous avez une cotisation impayée pour la tontine <strong>{$membre['tontine_nom']}</strong>.</p>
+                    <p>Notre système indique que vous avez une cotisation impayée pour la tontine <strong>{$membre['tontine_nom']}</strong> 
+                    de l'association <span class='association-name'>{$association_nom}</span>.</p>
                     
-                    <div class='amount'>
-                        Montant dû : " . number_format($montant, 0, ',', ' ') . " FCFA
+                    <div class='amount-box'>
+                        <p><strong>Montant dû :</strong></p>
+                        <div class='amount'>" . number_format($montant, 0, ',', ' ') . " FCFA</div>
                     </div>
                     
-                    <p><strong>Date de la séance :</strong> " . date('d/m/Y', strtotime($date_seance)) . "</p>
+                    <p><strong> Date de la séance :</strong> " . date('d/m/Y', strtotime($date_seance)) . "</p>
                     
                     <p>Merci de régulariser votre situation dès que possible.</p>
                     
                     <p>Cordialement,<br>Votre président</p>
                 </div>
                 <div class='footer'>
-                    <p>© 2025 Tontine App. Tous droits réservés.</p>
+                    <p>© 2025 TONTONTINE. Tous droits réservés.</p>
+                    <p style='margin:5px 0 0;'>Application de gestion de tontines</p>
                 </div>
             </div>
         </body>

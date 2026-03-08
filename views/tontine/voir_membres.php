@@ -18,6 +18,7 @@ $error = $_GET['error'] ?? 0;
 $desactive = $_GET['desactive'] ?? 0;
 $supprime = $_GET['supprime'] ?? 0;
 $error_activites = $_GET['error'] ?? 0;
+$reset = $_GET['reset'] ?? 0;
 
 $database = new Database();
 $db = $database->getConnection();
@@ -102,6 +103,15 @@ $membres = $stmt;
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(220, 53, 69, 0.3);
         }
+        .btn-outline-primary {
+            border: 2px solid #6B46C1;
+            color: #6B46C1;
+            background: transparent;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            color: white;
+        }
         .btn-outline-warning {
             border: 2px solid #ffc107;
             color: #ffc107;
@@ -145,6 +155,17 @@ $membres = $stmt;
         .alert {
             border-radius: 10px;
             border: none;
+        }
+        .alert-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+        }
+        .alert-info .badge {
+            background: white !important;
+            color: #17a2b8 !important;
+            font-size: 18px;
+            padding: 8px 15px;
         }
         .table th {
             background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
@@ -195,7 +216,7 @@ $membres = $stmt;
 
         <?php if($desactive == 1): ?>
             <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <i class="bi bi-person-x-fill me-2"></i>  Membre désactivé avec succès (données conservées).
+                <i class="bi bi-person-x-fill me-2"></i> 👤 Membre désactivé avec succès (données conservées).
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -219,6 +240,23 @@ $membres = $stmt;
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>  Impossible de supprimer : ce membre a déjà des activités (cotisations, amendes, bénéficiaire).
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php endif; ?>
+
+        <?php if($reset == 1 && isset($_SESSION['reset_password'])): ?>
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading"><i class="bi bi-key-fill"></i>  Nouveau mot de passe généré</h5>
+                <p>
+                    <strong>Membre :</strong> <?= htmlspecialchars($_SESSION['reset_user']) ?><br>
+                    <strong>Nouveau mot de passe :</strong> 
+                    <span class="badge bg-dark fs-5 p-2"><?= $_SESSION['reset_password'] ?></span>
+                </p>
+                <p class="mb-0">
+                    <small> À communiquer au membre. Il devra le changer à sa prochaine connexion.</small>
+                </p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <?php unset($_SESSION['reset_password']); ?>
+            <?php unset($_SESSION['reset_user']); ?>
         <?php endif; ?>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -279,6 +317,14 @@ $membres = $stmt;
                                         </td>
                                         <td class="text-center">
                                             <?php if($m['est_actif']): ?>
+                                                <!-- Réinitialiser mot de passe -->
+                                                <a href="reset_mdp_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 
+                                                   class="btn btn-outline-primary btn-sm"
+                                                   onclick="return confirm('Générer un nouveau mot de passe pour <?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?> ?')"
+                                                   title="Réinitialiser le mot de passe">
+                                                    <i class="bi bi-key"></i>
+                                                </a>
+                                                
                                                 <?php if($activites): ?>
                                                     <!-- Désactiver seulement (a des activités) -->
                                                     <a href="desactiver_membre.php?id=<?= $m['id'] ?>&tontine_id=<?= $tontine_id ?>" 

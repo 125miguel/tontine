@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -28,10 +28,10 @@ function genererMotDePasse($longueur = 8) {
 $database = new Database();
 $db = $database->getConnection();
 
-$membre_id = $_GET['id'] ?? 0;
+$membre_tontine_id = $_GET['id'] ?? 0;
 $tontine_id = $_GET['tontine_id'] ?? 0;
 
-if(!$membre_id || !$tontine_id) {
+if(!$membre_tontine_id || !$tontine_id) {
     header("Location: mes_tontines.php");
     exit();
 }
@@ -43,32 +43,41 @@ if(!$tontine->getById($tontine_id) || $tontine->admin_id != $_SESSION['user_id']
     exit();
 }
 
-// Récupérer l'email du membre
-$query = "SELECT u.email, u.prenom, u.nom FROM membre_tontine mt
-          JOIN users u ON mt.user_id = u.id
-          WHERE mt.id = :mid";
+// Récupérer l'ID de l'utilisateur et l'association
+$query = "SELECT user_id, association_id FROM membre_tontine WHERE id = :mid";
 $stmt = $db->prepare($query);
-$stmt->execute(['mid' => $membre_id]);
+$stmt->execute(['mid' => $membre_tontine_id]);
 $membre = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if($membre) {
-    // Générer un nouveau mot de passe
-    $temp_password = genererMotDePasse(6);
-    $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
-    
-    // Mettre à jour le mot de passe
-    $query = "UPDATE users SET password = :password, premiere_connexion = 1 
-              WHERE email = :email";
-    $stmt = $db->prepare($query);
-    $stmt->execute([
-        'password' => $hashed,
-        'email' => $membre['email']
-    ]);
-    
-    // Stocker en session pour affichage
-    $_SESSION['reset_password'] = $temp_password;
-    $_SESSION['reset_user'] = $membre['prenom'] . ' ' . $membre['nom'];
+if(!$membre) {
+    header("Location: voir_membres.php?id=" . $tontine_id . "&error=1");
+    exit();
 }
+
+// Générer un nouveau mot de passe
+$temp_password = genererMotDePasse(6);
+$hashed = password_hash($temp_password, PASSWORD_DEFAULT);
+
+// Mettre à jour le mot de passe dans membres_association
+$query = "UPDATE membres_association 
+          SET password = :password, premiere_connexion = 1
+          WHERE user_id = :user_id AND association_id = :association_id";
+$stmt = $db->prepare($query);
+$stmt->execute([
+    'password' => $hashed,
+    'user_id' => $membre['user_id'],
+    'association_id' => $membre['association_id']
+]);
+
+// Stocker le mot de passe en session pour affichage
+$_SESSION['reset_password'] = $temp_password;
+
+// Récupérer les infos du membre pour affichage
+$query = "SELECT prenom, nom FROM users WHERE id = :uid";
+$stmt = $db->prepare($query);
+$stmt->execute(['uid' => $membre['user_id']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$_SESSION['reset_user'] = $user['prenom'] . ' ' . $user['nom'];
 
 header("Location: voir_membres.php?id=" . $tontine_id . "&reset=1");
 exit();
