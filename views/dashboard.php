@@ -2,7 +2,6 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-
 session_start();
 
 if(!isset($_SESSION['user_id'])) {
@@ -20,7 +19,6 @@ require_once __DIR__ . '/../models/AmendeAppliquee.php';
 
 // Vérifier qu'une association est active
 if(!isset($_SESSION['association_active'])) {
-    // Si pas d'association active, rediriger vers choix
     header("Location: auth/choisir_association.php");
     exit();
 }
@@ -272,6 +270,22 @@ if($userRole == 'admin') {
             font-size: 14px;
             margin-left: 10px;
         }
+        .badge-ordre-final {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .badge-ordre-temp {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -328,6 +342,40 @@ if($userRole == 'admin') {
                     </a>
                 </div>
             </div>
+
+            <!-- Prochain bénéficiaire (si mode automatique) -->
+            <?php if($tontine_active && $tontine_active->mode_beneficiaire == 'auto'): 
+                // Récupérer le prochain bénéficiaire (ordre_final si disponible, sinon ordre_tour)
+                $query = "SELECT u.prenom, u.nom, 
+                                 COALESCE(mt.ordre_final, mt.ordre_tour) as ordre
+                          FROM membre_tontine mt
+                          JOIN users u ON mt.user_id = u.id
+                          WHERE mt.tontine_id = :tid AND mt.est_actif = 1
+                          ORDER BY COALESCE(mt.ordre_final, mt.ordre_tour) ASC LIMIT 1";
+                $stmt = $db->prepare($query);
+                $stmt->execute(['tid' => $tontine_active->id]);
+                $prochain = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Vérifier si l'ordre final existe
+                $query = "SELECT COUNT(*) as nb FROM membre_tontine 
+                          WHERE tontine_id = :tid AND ordre_final IS NOT NULL";
+                $stmt = $db->prepare($query);
+                $stmt->execute(['tid' => $tontine_active->id]);
+                $ordre_final_existe = $stmt->fetch()['nb'] > 0;
+                
+                $classe_ordre = $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp';
+            ?>
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-trophy"></i>
+                    <strong>Prochain bénéficiaire :</strong> 
+                    <?= htmlspecialchars($prochain['prenom'] . ' ' . $prochain['nom']) ?> 
+                    <span class="<?= $classe_ordre ?>">#<?= $prochain['ordre'] ?></span>
+                    <?php if(!$ordre_final_existe): ?>
+                        <small class="d-block mt-1"> Ordre provisoire en attendant la génération de l'ordre final</small>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
         <?php endif; ?>
 
         <?php if($userRole == 'admin'): ?>

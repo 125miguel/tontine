@@ -1,14 +1,18 @@
 <?php
 session_start();
-if(isset($_SESSION['user_id'])) {
-    header("Location: views/dashboard.php");
-    exit();
-}
 
 // Connexion à la base de données pour récupérer les avis
 require_once 'config/database.php';
 $database = new Database();
 $db = $database->getConnection();
+
+// Gestion des pages
+$page = $_GET['page'] ?? 'accueil';
+$allowed_pages = ['accueil', 'features', 'pricing', 'testimonials', 'contact'];
+
+if(!in_array($page, $allowed_pages)) {
+    $page = 'accueil';
+}
 
 // Récupérer les avis approuvés
 $query = "SELECT nom, role, note, message FROM avis WHERE approuve = 1 ORDER BY created_at DESC LIMIT 6";
@@ -38,6 +42,12 @@ if(empty($vrais_avis)) {
             'message' => 'Interface intuitive, support réactif. Mes membres, même les moins technophiles, s\'y sont rapidement adaptés.'
         ]
     ];
+}
+
+// Redirection si déjà connecté
+if(isset($_SESSION['user_id'])) {
+    header("Location: views/dashboard.php");
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -132,6 +142,20 @@ if(empty($vrais_avis)) {
         
         .nav-link:hover:after {
             width: 100%;
+        }
+        
+        .nav-link.active {
+            font-weight: 700;
+        }
+        
+        .nav-link.active:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
         }
         
         .btn-nav {
@@ -700,7 +724,7 @@ if(empty($vrais_avis)) {
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="index.php">
                 <i class="fas fa-hand-holding-usd me-2"></i>TONTONTINE
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -709,16 +733,19 @@ if(empty($vrais_avis)) {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#accueil">Accueil</a>
+                        <a class="nav-link <?= $page == 'accueil' ? 'active' : '' ?>" href="index.php">Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#fonctionnalites">Fonctionnalités</a>
+                        <a class="nav-link <?= $page == 'features' ? 'active' : '' ?>" href="index.php?page=features">Fonctionnalités</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#tarifs">Tarifs</a>
+                        <a class="nav-link <?= $page == 'pricing' ? 'active' : '' ?>" href="index.php?page=pricing">Tarifs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#contact">Nous contacter</a>
+                        <a class="nav-link <?= $page == 'testimonials' ? 'active' : '' ?>" href="index.php?page=testimonials">Avis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $page == 'contact' ? 'active' : '' ?>" href="index.php?page=contact">Contact</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="views/auth/login.php">Connexion</a>
@@ -733,7 +760,8 @@ if(empty($vrais_avis)) {
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero Section (visible seulement sur accueil) -->
+    <?php if($page == 'accueil'): ?>
     <section id="accueil" class="hero">
         <div class="hero-bg"></div>
         <div class="container">
@@ -745,15 +773,15 @@ if(empty($vrais_avis)) {
                     </h1>
                     <p>
                         TONTONTINE est la solution moderne pour gérer vos tontines, 
-                        cotisations, amendes et rapports. Rejoignez des milliers d' 
-                        association qui nous font confiance.
+                        cotisations, amendes et rapports. Rejoignez des milliers de 
+                        présidents qui nous font confiance.
                     </p>
                     <div class="hero-buttons">
-                        <a href="#fonctionnalites" class="btn-primary-custom">
-                            <i class="fas fa-play me-2"></i>Voir la démo
+                        <a href="views/auth/register.php" class="btn-primary-custom">
+                            <i class="fas fa-rocket me-2"></i>Commencer gratuitement
                         </a>
-                        <a href="views/auth/register.php" class="btn-secondary-custom">
-                            <i class="fas fa-rocket me-2"></i>Commencer
+                        <a href="#fonctionnalites" class="btn-secondary-custom">
+                            <i class="fas fa-play me-2"></i>Voir la démo
                         </a>
                     </div>
                     <div class="hero-stats">
@@ -773,14 +801,18 @@ if(empty($vrais_avis)) {
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
                     <div class="hero-image">
-                        <img src="assets/images/dashboard.jpeg" alt="Dashboard TONTONTINE" class="img-fluid rounded-3 shadow-lg">
+                        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1332&q=80" 
+                             alt="Groupe de personnes" 
+                             class="img-fluid rounded-3 shadow-lg">
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
-    <!-- Features Section -->
+    <!-- Features Section (visible sur accueil et features) -->
+    <?php if($page == 'accueil' || $page == 'features'): ?>
     <section id="fonctionnalites" class="features">
         <div class="container">
             <div class="section-title" data-aos="fade-up">
@@ -823,6 +855,7 @@ if(empty($vrais_avis)) {
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- Modals pour les fonctionnalités -->
     <div class="modal fade" id="modalFinance" tabindex="-1">
@@ -896,7 +929,8 @@ if(empty($vrais_avis)) {
         </div>
     </div>
 
-    <!-- Tarifs Section -->
+    <!-- Tarifs Section (visible sur accueil et pricing) -->
+    <?php if($page == 'accueil' || $page == 'pricing'): ?>
     <section id="tarifs" class="features" style="background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);">
         <div class="container">
             <div class="section-title" data-aos="fade-up">
@@ -910,10 +944,9 @@ if(empty($vrais_avis)) {
                         <div style="font-size: 48px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">0 FCFA</div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Jusqu'à 4 membres</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports de séance</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Gestion des amendes</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Support par email</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Durée 1 an</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports de séance Pdf complets</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes par email & sms</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -921,14 +954,13 @@ if(empty($vrais_avis)) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="200">
                     <div class="feature-card" style="border: 2px solid var(--violet); transform: scale(1.05); position: relative;">
                         <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%); color: white; padding: 5px 30px; border-radius: 50px; font-weight: 600;">Populaire</div>
-                        <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Basic</h3>
-                        <div style="font-size: 48px; font-weight: 700; color: var(--orange); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
+                        <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Prenium</h3>
+                        <div style="font-size: 30px; font-weight: 700; color: var(--orange); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> 5 à 15 membres</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Rapports PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Support prioritaire</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Export des données</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Alertes par Email & SMS</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -936,12 +968,13 @@ if(empty($vrais_avis)) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="300">
                     <div class="feature-card">
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Pro</h3>
-                        <div style="font-size: 48px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA <small style="font-size: 16px;">/mois</small></div>
+                        <div style="font-size: 30px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA<small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 16 membres</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 15 membres</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes par Email & SMS</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Support VIP</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Export des données</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -952,8 +985,10 @@ if(empty($vrais_avis)) {
             </p>
         </div>
     </section>
+    <?php endif; ?>
 
-    <!-- Testimonials Section -->
+    <!-- Testimonials Section (visible sur accueil et testimonials) -->
+    <?php if($page == 'accueil' || $page == 'testimonials'): ?>
     <section id="avis" class="testimonials">
         <div class="container">
             <div class="section-title" data-aos="fade-up" style="color: white;">
@@ -1026,22 +1061,25 @@ if(empty($vrais_avis)) {
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
-    <!-- CTA Section -->
+    <!-- Contact Section (visible sur accueil et contact) -->
+    <?php if($page == 'accueil' || $page == 'contact'): ?>
     <section id="contact" class="cta">
         <div class="container">
             <div class="cta-box" data-aos="zoom-in">
                 <h2>Prêt à simplifier votre tontine ?</h2>
-                <p>Rejoignez des milliers d'association qui nous font confiance</p>
+                <p>Rejoignez des milliers de présidents qui nous font confiance</p>
                 <a href="#" class="btn-cta" onclick="alert('Vidéo de démo à venir !'); return false;">
                     <i class="fas fa-play me-2"></i>Voir la démo
                 </a>
             </div>
         </div>
     </section>
+    <?php endif; ?>
 
-    <!-- Footer -->
-    <footer id="contact">
+    <!-- Footer (toujours visible) -->
+    <footer>
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4">
@@ -1057,10 +1095,11 @@ if(empty($vrais_avis)) {
                 <div class="col-md-2 mb-4">
                     <h5>Liens</h5>
                     <ul>
-                        <li><a href="#accueil">Accueil</a></li>
-                        <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-                        <li><a href="#tarifs">Tarifs</a></li>
-                        <li><a href="#avis">Avis</a></li>
+                        <li><a href="index.php">Accueil</a></li>
+                        <li><a href="index.php?page=features">Fonctionnalités</a></li>
+                        <li><a href="index.php?page=pricing">Tarifs</a></li>
+                        <li><a href="index.php?page=testimonials">Avis</a></li>
+                        <li><a href="index.php?page=contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">

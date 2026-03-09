@@ -19,6 +19,8 @@ $desactive = $_GET['desactive'] ?? 0;
 $supprime = $_GET['supprime'] ?? 0;
 $error_activites = $_GET['error'] ?? 0;
 $reset = $_GET['reset'] ?? 0;
+$melange = $_GET['melange'] ?? 0;
+$ordre_genere = $_GET['ordre_genere'] ?? 0;
 
 $database = new Database();
 $db = $database->getConnection();
@@ -32,6 +34,16 @@ if(!$tontine->getById($tontine_id) || $tontine->admin_id != $_SESSION['user_id']
     exit();
 }
 
+// Vérifier le mode de la tontine
+$mode_auto = ($tontine->mode_beneficiaire == 'auto');
+
+// Vérifier si l'ordre final a déjà été généré
+$query = "SELECT COUNT(*) as nb FROM membre_tontine 
+          WHERE tontine_id = :tid AND ordre_final IS NOT NULL";
+$stmt = $db->prepare($query);
+$stmt->execute(['tid' => $tontine_id]);
+$ordre_final_existe = $stmt->fetch()['nb'] > 0;
+
 $membreTontine = new MembreTontine($db);
 
 // Récupérer les membres avec leur adresse
@@ -39,7 +51,7 @@ $query = "SELECT m.*, u.nom, u.prenom, u.email, u.telephone, u.adresse
           FROM membre_tontine m
           JOIN users u ON m.user_id = u.id
           WHERE m.tontine_id = :tontine_id
-          ORDER BY m.ordre_tour ASC";
+          ORDER BY COALESCE(m.ordre_final, m.ordre_tour) ASC";
 $stmt = $db->prepare($query);
 $stmt->execute(['tontine_id' => $tontine_id]);
 $membres = $stmt;
@@ -144,13 +156,31 @@ $membres = $stmt;
             border-radius: 20px;
             font-size: 12px;
         }
-        .badge-ordre {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+        .badge-ordre-final {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 700;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .badge-ordre-temp {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 700;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .alert {
             border-radius: 10px;
@@ -216,7 +246,7 @@ $membres = $stmt;
 
         <?php if($desactive == 1): ?>
             <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <i class="bi bi-person-x-fill me-2"></i> 👤 Membre désactivé avec succès (données conservées).
+                <i class="bi bi-person-x-fill me-2"></i>  Membre désactivé avec succès (données conservées).
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -242,6 +272,20 @@ $membres = $stmt;
             </div>
         <?php endif; ?>
 
+        <?php if($melange == 1): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-shuffle"></i>  Ordre des bénéficiaires mélangé avec succès !
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <?php if($ordre_genere == 1): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i>  Ordre définitif des bénéficiaires généré avec succès !
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
         <?php if($reset == 1 && isset($_SESSION['reset_password'])): ?>
             <div class="alert alert-info alert-dismissible fade show" role="alert">
                 <h5 class="alert-heading"><i class="bi bi-key-fill"></i>  Nouveau mot de passe généré</h5>
@@ -261,9 +305,18 @@ $membres = $stmt;
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-people-fill"></i> Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
-            <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="btn btn-success">
-                <i class="bi bi-person-plus-fill"></i> Ajouter un membre
-            </a>
+            <div>
+                <?php if($mode_auto && !$ordre_final_existe): ?>
+                    <a href="generer_ordre_final.php?id=<?= $tontine_id ?>" 
+                       class="btn btn-warning me-2"
+                       onclick="return confirm('Générer l\'ordre définitif des bénéficiaires ?\nCette action est irréversible.')">
+                        <i class="bi bi-shuffle"></i> Générer l'ordre final
+                    </a>
+                <?php endif; ?>
+                <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="btn btn-success">
+                    <i class="bi bi-person-plus-fill"></i> Ajouter un membre
+                </a>
+            </div>
         </div>
 
         <?php if($membres->rowCount() == 0): ?>
@@ -296,6 +349,8 @@ $membres = $stmt;
                                 $compteur = 1;
                                 while($m = $membres->fetch(PDO::FETCH_ASSOC)): 
                                     $activites = $membreTontine->aDesActivites($m['id']);
+                                    $ordre_affiche = $m['ordre_final'] ?? $m['ordre_tour'];
+                                    $classe_ordre = $m['ordre_final'] ? 'badge-ordre-final' : 'badge-ordre-temp';
                                 ?>
                                     <tr>
                                         <td class="text-center"><?= $compteur++ ?></td>
@@ -306,7 +361,7 @@ $membres = $stmt;
                                         <td><?= htmlspecialchars($m['email']) ?></td>
                                         <td><?= htmlspecialchars($m['adresse'] ?? '-') ?></td>
                                         <td class="text-center">
-                                            <span class="badge-ordre"><?= $m['ordre_tour'] ?></span>
+                                            <span class="<?= $classe_ordre ?>">#<?= $ordre_affiche ?></span>
                                         </td>
                                         <td class="text-center">
                                             <?php if($m['est_actif']): ?>
