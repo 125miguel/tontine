@@ -176,6 +176,15 @@ if(isset($_SESSION['user_id'])) {
             display: none;
         }
         
+        /* Personnalisation du bouton hamburger */
+        .navbar-toggler {
+            border: 2px solid white;
+            padding: 8px 12px;
+        }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+        
         /* Hero Section */
         .hero {
             padding: 150px 0 100px;
@@ -282,17 +291,10 @@ if(isset($_SESSION['user_id'])) {
         
         .hero-image {
             position: relative;
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0px); }
         }
         
         .hero-image img {
-            width: 100%;
+            width: 95%;
             border-radius: 20px;
             box-shadow: 0 30px 60px rgba(0,0,0,0.1);
         }
@@ -669,31 +671,95 @@ if(isset($_SESSION['user_id'])) {
             color: white;
         }
         
-        /* Responsive */
-        @media (max-width: 768px) {
+        /* Adaptation navbar mobile */
+        @media (max-width: 991.98px) {
+            .navbar-nav {
+                padding: 20px 0;
+            }
+            .nav-link {
+                margin: 10px 0;
+                text-align: center;
+            }
+            .btn-nav {
+                margin: 10px auto !important;
+                display: inline-block !important;
+                width: auto;
+                padding: 10px 30px !important;
+            }
+        }
+        
+        /* Extra petits écrans (téléphones, < 576px) */
+        @media (max-width: 575.98px) {
             .hero h1 {
-                font-size: 36px;
-            }
-            
-            .hero-buttons {
-                flex-direction: column;
-            }
-            
-            .hero-stats {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .section-title h2 {
                 font-size: 32px;
             }
-            
+            .hero p {
+                font-size: 16px;
+            }
+            .hero-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .btn-primary-custom, .btn-secondary-custom {
+                width: 100%;
+                text-align: center;
+            }
+            .hero-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .stat-item h3 {
+                font-size: 28px;
+            }
+            .section-title h2 {
+                font-size: 28px;
+            }
+            .section-title p {
+                font-size: 16px;
+            }
+            .feature-card {
+                padding: 30px 20px;
+            }
+            .feature-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+            .testimonial-card {
+                padding: 30px 20px;
+            }
+            .review-form {
+                padding: 30px 20px;
+            }
             .cta-box {
                 padding: 40px 20px;
             }
-            
             .cta-box h2 {
                 font-size: 28px;
+            }
+            .cta-box p {
+                font-size: 16px;
+            }
+            .btn-cta {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+        }
+        
+        /* Petits écrans (tablettes, < 768px) */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .hero h1 {
+                font-size: 40px;
+            }
+            .hero-stats {
+                gap: 30px;
+            }
+        }
+        
+        /* Medium écrans (tablettes en paysage, < 992px) */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .hero h1 {
+                font-size: 48px;
             }
         }
     </style>
@@ -772,9 +838,9 @@ if(isset($_SESSION['user_id'])) {
                         en toute <span>simplicité</span>
                     </h1>
                     <p>
-                        TONTONTINE est la solution moderne pour gérer vos tontines, 
-                        cotisations, amendes et rapports. Rejoignez des milliers de 
-                        présidents qui nous font confiance.
+                        Nous transformons un système communautaire historique
+                        en une solution digitale sécurisée,transparente et simple à utiliser. 
+                        Rejoignez des milliers de présidents qui nous font confiance.
                     </p>
                     <div class="hero-buttons">
                         <a href="views/auth/register.php" class="btn-primary-custom">
@@ -801,7 +867,7 @@ if(isset($_SESSION['user_id'])) {
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
                     <div class="hero-image">
-                        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1332&q=80" 
+                        <img src="assets/images/Black people team.jfif" 
                              alt="Groupe de personnes" 
                              class="img-fluid rounded-3 shadow-lg">
                     </div>
@@ -941,12 +1007,12 @@ if(isset($_SESSION['user_id'])) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="100">
                     <div class="feature-card">
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Gratuit</h3>
-                        <div style="font-size: 48px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">0 FCFA</div>
+                        <div style="font-size: 32px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">0 FCFA</div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Jusqu'à 4 membres</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Durée 1 an</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports de séance Pdf complets</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes par email & sms</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes Email & SMS</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -955,12 +1021,12 @@ if(isset($_SESSION['user_id'])) {
                     <div class="feature-card" style="border: 2px solid var(--violet); transform: scale(1.05); position: relative;">
                         <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%); color: white; padding: 5px 30px; border-radius: 50px; font-weight: 600;">Populaire</div>
                         <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Prenium</h3>
-                        <div style="font-size: 30px; font-weight: 700; color: var(--orange); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
+                        <div style="font-size: 32px; font-weight: 700; color: var(--orange); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> 5 à 15 membres</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Rapports complets PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Alertes par Email & SMS</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Alertes Email & SMS</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -968,12 +1034,12 @@ if(isset($_SESSION['user_id'])) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="300">
                     <div class="feature-card">
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Pro</h3>
-                        <div style="font-size: 30px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA<small style="font-size: 16px;">/mois</small></div>
+                        <div style="font-size: 36px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 15 membres</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 16 membres </li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes Email & SMS</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports complets PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes par Email & SMS</li>
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Support VIP</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>

@@ -246,22 +246,22 @@ $classement_membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button">
-                     État général
+                    📊 État général
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="membres-tab" data-bs-toggle="tab" data-bs-target="#membres" type="button">
-                     État des membres
+                    👥 État des membres
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="seances-tab" data-bs-toggle="tab" data-bs-target="#seances" type="button">
-                     État par séance
+                    📅 État par séance
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="retards-tab" data-bs-toggle="tab" data-bs-target="#retards" type="button">
-                     État des retards
+                    ⏰ État des retards
                 </button>
             </li>
         </ul>
@@ -284,19 +284,19 @@ $classement_membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="stat-card">
-                                    <div class="stat-number"><?= number_format($total_collecte ?? 0, 0, ',', ' ') ?> F</div>
+                                    <div class="stat-number"><?= number_format($total_collecte, 0, ',', ' ') ?> F</div>
                                     <div class="stat-label">Total collecté</div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="stat-card">
-                                    <div class="stat-number"><?= number_format($total_distribue ?? 0, 0, ',', ' ') ?> F</div>
+                                    <div class="stat-number"><?= number_format($total_distribue, 0, ',', ' ') ?> F</div>
                                     <div class="stat-label">Total distribué</div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <div class="stat-card">
-                                    <div class="stat-number"><?= number_format($solde_amendes ?? 0, 0, ',', ' ') ?> F</div>
+                                    <div class="stat-number"><?= number_format($solde_amendes, 0, ',', ' ') ?> F</div>
                                     <div class="stat-label">Solde amendes</div>
                                 </div>
                             </div>
@@ -347,7 +347,7 @@ $classement_membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <tr>
                                         <td><?= htmlspecialchars($p['prenom'] . ' ' . $p['nom']) ?></td>
                                         <td><?= $p['nb_amendes'] ?></td>
-                                        <td><?= number_format($p['total_amendes'] ?? 0, 0, ',', ' ') ?> F</td>
+                                        <td><?= number_format($p['total_amendes'], 0, ',', ' ') ?> F</td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -381,10 +381,10 @@ $classement_membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 ?>
                                     <tr>
                                         <td><?= date('d/m/Y', strtotime($s['date_seance'])) ?></td>
-                                        <td><?= number_format($prevu ?? 0, 0, ',', ' ') ?> F</td>
-                                       <td><?= number_format($reel ?? 0, 0, ',', ' ') ?> F</td>
+                                        <td><?= number_format($prevu, 0, ',', ' ') ?> F</td>
+                                        <td><?= number_format($reel, 0, ',', ' ') ?> F</td>
                                         <td class="<?= $ecart >= 0 ? 'text-success' : 'text-danger' ?>">
-                                            <td><?= number_format($ecart ?? 0, 0, ',', ' ') ?> F</td>
+                                            <?= number_format($ecart, 0, ',', ' ') ?> F
                                         </td>
                                         <td><?= htmlspecialchars($s['beneficiaire_nom'] ?? '-') ?></td>
                                     </tr>
