@@ -808,9 +808,6 @@ if(isset($_SESSION['user_id'])) {
                         <a class="nav-link <?= $page == 'pricing' ? 'active' : '' ?>" href="index.php?page=pricing">Tarifs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= $page == 'testimonials' ? 'active' : '' ?>" href="index.php?page=testimonials">Avis</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link <?= $page == 'contact' ? 'active' : '' ?>" href="index.php?page=contact">Contact</a>
                     </li>
                     <li class="nav-item">
@@ -1058,8 +1055,7 @@ if(isset($_SESSION['user_id'])) {
     <section id="avis" class="testimonials">
         <div class="container">
             <div class="section-title" data-aos="fade-up" style="color: white;">
-                <h2 style="color: white;">Ce que disent nos <span style="color: var(--jaune);">utilisateurs</span></h2>
-                <p style="color: rgba(255,255,255,0.8);">Ils nous font confiance</p>
+                <h2 style="color: white;">Ce que disent nos <span style="color: var(--jaune);">utilisateurs</span></h2>    
             </div>
             <div class="row g-4">
                 <?php 
@@ -1180,8 +1176,8 @@ if(isset($_SESSION['user_id'])) {
                     <h5>Contact</h5>
                     <ul>
                         <li><i class="fas fa-envelope me-2"></i> <a href="mailto:contact@tontontine.com">contact@tontontine.com</a></li>
-                        <li><i class="fas fa-phone me-2"></i> <a href="tel:+237699999999">+237 6XX XXX XXX</a></li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i> Douala, Cameroun</li>
+                        <li><i class="fas fa-phone me-2"></i> <a href="tel:+237699309659">+237 699 309 659</a></li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Yaoundé, Cameroun</li>
                     </ul>
                 </div>
             </div>
@@ -1192,7 +1188,7 @@ if(isset($_SESSION['user_id'])) {
     </footer>
 
     <!-- Bouton WhatsApp flottant -->
-    <a href="https://wa.me/237699999999" class="whatsapp-float" target="_blank">
+    <a href="https://wa.me/237699309659" class="whatsapp-float" target="_blank">
         <i class="fab fa-whatsapp"></i>
     </a>
 

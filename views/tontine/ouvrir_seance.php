@@ -59,7 +59,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
         // Créer la séance
         $seance->tontine_id = $tontine_id;
         $seance->date_seance = $date_seance;
-        $seance->nom_reunion = $nom_reunion;
         
         if($seance->create()) {
             // Initialiser les présences
@@ -75,7 +74,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
                 $seance_data = [
                     'id' => $seance->id,
                     'date_seance' => $seance->date_seance,
-                    'nom_reunion' => $seance->nom_reunion
                 ];
             } else {
                 $error = "Erreur lors de l'initialisation des cotisations";
