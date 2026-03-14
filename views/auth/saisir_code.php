@@ -46,12 +46,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         .card {
             border-radius: 20px;
@@ -62,97 +62,199 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             overflow: hidden;
         }
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             color: white;
             text-align: center;
             padding: 40px 30px;
+            border-bottom: none;
         }
         .card-header h2 {
             font-weight: 700;
             margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .card-header p {
+            opacity: 0.9;
+            font-size: 16px;
         }
         .card-body {
             padding: 40px;
             background: white;
         }
         .code-input {
-            font-size: 24px;
-            letter-spacing: 10px;
+            font-size: 32px;
+            letter-spacing: 12px;
             text-align: center;
-            font-weight: bold;
+            font-weight: 700;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            transition: all 0.3s;
+            font-family: monospace;
+        }
+        .code-input:focus {
+            border-color: #1E3A8A;
+            box-shadow: 0 0 0 0.2rem rgba(30, 58, 138, 0.25);
+            outline: none;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             border: none;
-            padding: 12px;
+            padding: 14px;
             width: 100%;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: 600;
+            font-size: 16px;
             transition: all 0.3s;
+            color: white;
         }
         .btn-primary:hover {
+            background-color: #152b63;
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.4);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
         }
         .form-control {
-            border-radius: 10px;
+            border-radius: 12px;
             border: 2px solid #e0e0e0;
-            padding: 12px;
+            padding: 12px 15px;
             transition: all 0.3s;
         }
         .form-control:focus {
-            border-color: #6B46C1;
+            border-color: #1E3A8A;
             box-shadow: none;
         }
         .alert {
-            border-radius: 10px;
-        }
-        .debug-code {
-            background: #f8f9fa;
-            border: 2px dashed #6B46C1;
+            border-radius: 12px;
             padding: 15px;
-            text-align: center;
+            margin-bottom: 25px;
+            border: none;
+        }
+        .alert-danger {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border-left: 4px solid #dc2626;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #2D3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .text-muted {
+            color: #718096 !important;
+            line-height: 1.6;
+        }
+        .text-muted strong {
+            color: #1E3A8A;
+            font-weight: 600;
+        }
+        .link-custom {
+            color: #1E3A8A;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-block;
+            padding: 5px 10px;
+        }
+        .link-custom:hover {
+            color: #152b63;
+            text-decoration: underline;
+        }
+        .icon-email {
+            color: #1E3A8A;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .timer-text {
+            font-size: 14px;
+            color: #718096;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
             border-radius: 10px;
-            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="card-header">
-            <h2><i class="fas fa-hand-holding-usd me-2"></i>TONTONTINE</h2>
-            <p class="mb-0">Saisissez votre code</p>
+            <i class="fas fa-hand-holding-usd fa-3x mb-3"></i>
+            <h2>TONTONTINE</h2>
+            <p class="mb-0">Vérification du code de sécurité</p>
         </div>
         <div class="card-body">
-
             <?php if($error): ?>
-                <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <?= htmlspecialchars($error) ?>
+                </div>
             <?php endif; ?>
 
-            <p class="text-muted text-center mb-4">
-                Un code a été envoyé à <strong><?= htmlspecialchars($_SESSION['reset_email']) ?></strong>
-                pour l'association sélectionnée.
-            </p>
+            <div class="text-center mb-4">
+                <i class="fas fa-envelope icon-email"></i>
+                <p class="text-muted mb-0">
+                    Un code de vérification à 6 chiffres<br>a été envoyé à :
+                </p>
+                <strong class="d-block mt-2" style="color: #1E3A8A; font-size: 16px;">
+                    <?= htmlspecialchars($_SESSION['reset_email']) ?>
+                </strong>
+                <p class="text-muted mt-2 small">
+                    pour l'association sélectionnée
+                </p>
+            </div>
 
             <form method="POST">
                 <div class="mb-4">
-                    <label class="form-label"> Code de validation</label>
-                    <input type="text" name="code" class="form-control code-input" 
-                           maxlength="6" pattern="[0-9]{6}" 
-                           placeholder="123456" required>
+                    <label class="form-label">
+                        <i class="fas fa-key me-2"></i>Code de validation
+                    </label>
+                    <input type="text" 
+                           name="code" 
+                           class="form-control code-input" 
+                           maxlength="6" 
+                           pattern="[0-9]{6}" 
+                           placeholder="••••••" 
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           required>
+                    <div class="timer-text text-center mt-3">
+                        <i class="far fa-clock me-1"></i>
+                        Ce code expirera dans 15 minutes
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn-primary">
+                    <i class="fas fa-check-circle me-2"></i>
                     Vérifier le code
                 </button>
                 
-                <div class="text-center mt-3">
-                    <a href="mot_de_passe_oublie.php" class="text-decoration-none" style="color: #6B46C1;">
-                        Renvoyer un code
+                <div class="text-center mt-4">
+                    <a href="mot_de_passe_oublie.php" class="link-custom">
+                        <i class="fas fa-redo-alt me-1"></i>
+                        Renvoyer un nouveau code
                     </a>
                 </div>
             </form>
+
+            <div class="text-center mt-3">
+                <a href="../auth/login.php" class="link-custom small">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Retour à la connexion
+                </a>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Auto-focus sur le champ code
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.code-input').focus();
+        });
+    </script>
 </body>
 </html>

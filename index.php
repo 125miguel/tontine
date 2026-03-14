@@ -74,13 +74,15 @@ if(isset($_SESSION['user_id'])) {
     
     <style>
         :root {
-            --violet: #6B46C1;
-            --orange: #FF8A4C;
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --secondary: #F59E0B;        /* Ambre (accent) */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
             --jaune: #FBBF24;
-            --blanc: #F7F9FC;
-            --gris: #2D3748;
-            --violet-clair: #9F7AEA;
-            --orange-clair: #FFB088;
         }
         
         * {
@@ -91,38 +93,38 @@ if(isset($_SESSION['user_id'])) {
         
         body {
             font-family: 'Inter', sans-serif;
-            color: var(--gris);
+            color: var(--text-dark);
             overflow-x: hidden;
-            background: linear-gradient(135deg, #fff5f0 0%, #f0e7ff 100%);
+            background: var(--bg-light);
         }
         
         /* Navigation */
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: var(--primary);
             padding: 20px 0;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             transition: all 0.3s;
         }
         
         .navbar.scrolled {
             padding: 15px 0;
-            background: white;
-            box-shadow: 0 5px 30px rgba(107, 70, 193, 0.1);
+            background: var(--primary);
         }
         
         .navbar-brand {
             font-size: 28px;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--white);
             letter-spacing: -0.5px;
+            text-decoration: none;
+        }
+        
+        .navbar-brand i {
+            color: var(--white);
         }
         
         .nav-link {
-            color: var(--gris) !important;
+            color: var(--white) !important;
             font-weight: 500;
             margin: 0 15px;
             transition: all 0.3s;
@@ -136,7 +138,7 @@ if(isset($_SESSION['user_id'])) {
             left: 0;
             width: 0;
             height: 2px;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--white);
             transition: width 0.3s;
         }
         
@@ -155,12 +157,12 @@ if(isset($_SESSION['user_id'])) {
             left: 0;
             width: 100%;
             height: 3px;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--white);
         }
         
         .btn-nav {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            color: white !important;
+            background: var(--white);
+            color: var(--primary) !important;
             padding: 10px 25px !important;
             border-radius: 50px;
             font-weight: 600;
@@ -169,7 +171,8 @@ if(isset($_SESSION['user_id'])) {
         
         .btn-nav:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.3);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
+            background: var(--white);
         }
         
         .btn-nav:after {
@@ -178,7 +181,7 @@ if(isset($_SESSION['user_id'])) {
         
         /* Personnalisation du bouton hamburger */
         .navbar-toggler {
-            border: 2px solid white;
+            border: 2px solid var(--white);
             padding: 8px 12px;
         }
         .navbar-toggler-icon {
@@ -190,18 +193,7 @@ if(isset($_SESSION['user_id'])) {
             padding: 150px 0 100px;
             position: relative;
             overflow: hidden;
-        }
-        
-        .hero-bg {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--violet-clair) 0%, var(--orange-clair) 100%);
-            clip-path: polygon(100% 0, 0 0, 100% 100%);
-            opacity: 0.1;
-            z-index: -1;
+            background: linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
         }
         
         .hero h1 {
@@ -212,16 +204,13 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .hero h1 span {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--primary);
             display: inline-block;
         }
         
         .hero p {
             font-size: 18px;
-            color: #666;
+            color: var(--text-light);
             margin-bottom: 30px;
             line-height: 1.8;
         }
@@ -233,8 +222,8 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .btn-primary-custom {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 15px 40px;
             border-radius: 50px;
             font-weight: 600;
@@ -245,28 +234,29 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .btn-primary-custom:hover {
+            background: var(--primary-light);
             transform: translateY(-3px);
-            box-shadow: 0 20px 40px rgba(107, 70, 193, 0.3);
-            color: white;
+            box-shadow: 0 20px 40px rgba(30, 58, 138, 0.3);
+            color: var(--white);
         }
         
         .btn-secondary-custom {
-            background: white;
-            color: var(--violet);
+            background: transparent;
+            color: var(--primary);
             padding: 15px 40px;
             border-radius: 50px;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s;
-            border: 2px solid var(--violet);
+            border: 2px solid var(--primary);
             display: inline-block;
         }
         
         .btn-secondary-custom:hover {
-            background: var(--violet);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             transform: translateY(-3px);
-            box-shadow: 0 20px 40px rgba(107, 70, 193, 0.2);
+            box-shadow: 0 20px 40px rgba(30, 58, 138, 0.2);
         }
         
         .hero-stats {
@@ -277,20 +267,16 @@ if(isset($_SESSION['user_id'])) {
         .stat-item h3 {
             font-size: 36px;
             font-weight: 700;
-            color: var(--violet);
+            color: var(--primary);
             margin-bottom: 5px;
         }
         
         .stat-item p {
             margin: 0;
-            color: #888;
+            color: var(--text-light);
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
-        }
-        
-        .hero-image {
-            position: relative;
         }
         
         .hero-image img {
@@ -302,7 +288,7 @@ if(isset($_SESSION['user_id'])) {
         /* Features Section */
         .features {
             padding: 100px 0;
-            background: white;
+            background: var(--white);
         }
         
         .section-title {
@@ -317,59 +303,45 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .section-title h2 span {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--primary);
         }
         
         .section-title p {
             font-size: 18px;
-            color: #666;
+            color: var(--text-light);
             max-width: 700px;
             margin: 0 auto;
         }
         
         .feature-card {
-            background: white;
+            background: var(--white);
             border-radius: 20px;
             padding: 40px 30px;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.05);
             transition: all 0.3s;
             height: 100%;
-            border: 1px solid rgba(107, 70, 193, 0.1);
+            border: 1px solid var(--border);
             cursor: pointer;
         }
         
         .feature-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(107, 70, 193, 0.15);
-            border-color: var(--violet);
+            box-shadow: 0 20px 60px rgba(30, 58, 138, 0.1);
+            border-color: var(--primary);
         }
         
         .feature-icon {
             width: 90px;
             height: 90px;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--primary);
             border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 30px;
-            color: white;
+            color: var(--white);
             font-size: 36px;
-            transform: rotate(45deg);
-            transition: all 0.3s;
-        }
-        
-        .feature-icon i {
-            transform: rotate(-45deg);
-        }
-        
-        .feature-card:hover .feature-icon {
-            transform: rotate(0deg);
-            border-radius: 50%;
         }
         
         .feature-card h3 {
@@ -379,7 +351,7 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .feature-card p {
-            color: #666;
+            color: var(--text-light);
             margin: 0;
             line-height: 1.8;
         }
@@ -390,8 +362,8 @@ if(isset($_SESSION['user_id'])) {
             border: none;
         }
         .modal-header {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 20px 20px 0 0;
         }
         .modal-header .btn-close {
@@ -401,7 +373,7 @@ if(isset($_SESSION['user_id'])) {
         /* Testimonials Section */
         .testimonials {
             padding: 100px 0;
-            background: linear-gradient(135deg, var(--violet-clair) 0%, var(--orange-clair) 100%);
+            background: var(--primary);
             position: relative;
             overflow: hidden;
         }
@@ -429,7 +401,7 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .testimonial-card {
-            background: white;
+            background: var(--white);
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.1);
@@ -451,7 +423,7 @@ if(isset($_SESSION['user_id'])) {
         .testimonial-text {
             font-size: 16px;
             line-height: 1.8;
-            color: #555;
+            color: var(--text-light);
             margin-bottom: 30px;
             font-style: italic;
         }
@@ -464,12 +436,12 @@ if(isset($_SESSION['user_id'])) {
         .testimonial-avatar {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--primary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--white);
             font-weight: 700;
             font-size: 20px;
             margin-right: 20px;
@@ -482,13 +454,13 @@ if(isset($_SESSION['user_id'])) {
         
         .testimonial-info p {
             margin: 0;
-            color: #888;
+            color: var(--text-light);
             font-size: 14px;
         }
         
         /* Formulaire d'avis */
         .review-form {
-            background: white;
+            background: var(--white);
             border-radius: 20px;
             padding: 50px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.1);
@@ -500,17 +472,18 @@ if(isset($_SESSION['user_id'])) {
             font-weight: 700;
             margin-bottom: 30px;
             text-align: center;
+            color: var(--primary);
         }
         
         .form-control, .form-select {
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border);
             border-radius: 10px;
             padding: 12px 15px;
             transition: all 0.3s;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: var(--violet);
+            border-color: var(--primary);
             box-shadow: none;
             outline: none;
         }
@@ -529,7 +502,7 @@ if(isset($_SESSION['user_id'])) {
         
         .rating-input label {
             font-size: 30px;
-            color: #ddd;
+            color: var(--border);
             cursor: pointer;
             transition: all 0.3s;
         }
@@ -543,15 +516,15 @@ if(isset($_SESSION['user_id'])) {
         /* CTA Section */
         .cta {
             padding: 100px 0;
-            background: white;
+            background: var(--white);
         }
         
         .cta-box {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--primary);
             border-radius: 30px;
             padding: 80px;
             text-align: center;
-            color: white;
+            color: var(--white);
         }
         
         .cta-box h2 {
@@ -567,8 +540,8 @@ if(isset($_SESSION['user_id'])) {
         }
         
         .btn-cta {
-            background: white;
-            color: var(--violet);
+            background: var(--white);
+            color: var(--primary);
             padding: 15px 50px;
             border-radius: 50px;
             font-weight: 600;
@@ -581,18 +554,18 @@ if(isset($_SESSION['user_id'])) {
         .btn-cta:hover {
             transform: translateY(-3px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            color: var(--orange);
+            background: var(--white);
         }
         
         /* Footer */
         footer {
-            background: var(--gris);
+            background: var(--text-dark);
             color: #999;
             padding: 60px 0 20px;
         }
         
         footer h5 {
-            color: white;
+            color: var(--white);
             font-weight: 600;
             margin-bottom: 25px;
         }
@@ -613,7 +586,7 @@ if(isset($_SESSION['user_id'])) {
         }
         
         footer ul li a:hover {
-            color: white;
+            color: var(--white);
         }
         
         .social-links {
@@ -630,12 +603,12 @@ if(isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--white);
             transition: all 0.3s;
         }
         
         .social-links a:hover {
-            background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%);
+            background: var(--primary);
             transform: translateY(-3px);
         }
         
@@ -653,7 +626,7 @@ if(isset($_SESSION['user_id'])) {
             bottom: 30px;
             right: 30px;
             background: #25D366;
-            color: white;
+            color: var(--white);
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -668,7 +641,7 @@ if(isset($_SESSION['user_id'])) {
         .whatsapp-float:hover {
             transform: scale(1.1);
             box-shadow: 0 10px 30px rgba(37, 211, 102, 0.5);
-            color: white;
+            color: var(--white);
         }
         
         /* Adaptation navbar mobile */
@@ -826,7 +799,6 @@ if(isset($_SESSION['user_id'])) {
     <!-- Hero Section (visible seulement sur accueil) -->
     <?php if($page == 'accueil'): ?>
     <section id="accueil" class="hero">
-        <div class="hero-bg"></div>
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6" data-aos="fade-right">
@@ -994,7 +966,7 @@ if(isset($_SESSION['user_id'])) {
 
     <!-- Tarifs Section (visible sur accueil et pricing) -->
     <?php if($page == 'accueil' || $page == 'pricing'): ?>
-    <section id="tarifs" class="features" style="background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);">
+    <section id="tarifs" class="features">
         <div class="container">
             <div class="section-title" data-aos="fade-up">
                 <h2>Des <span>tarifs</span> adaptés à vos besoins</h2>
@@ -1004,26 +976,26 @@ if(isset($_SESSION['user_id'])) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="100">
                     <div class="feature-card">
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Gratuit</h3>
-                        <div style="font-size: 32px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">0 FCFA</div>
+                        <div style="font-size: 32px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">0 FCFA</div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Jusqu'à 4 membres</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Durée 1 an</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports complets PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes Email & SMS</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Jusqu'à 4 membres</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Durée 1 an</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Alertes Email & SMS</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
                 </div>
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="200">
-                    <div class="feature-card" style="border: 2px solid var(--violet); transform: scale(1.05); position: relative;">
-                        <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--violet) 0%, var(--orange) 100%); color: white; padding: 5px 30px; border-radius: 50px; font-weight: 600;">Populaire</div>
+                    <div class="feature-card" style="border: 2px solid var(--primary); transform: scale(1.05); position: relative;">
+                        <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 5px 30px; border-radius: 50px; font-weight: 600;">Populaire</div>
                         <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Prenium</h3>
-                        <div style="font-size: 32px; font-weight: 700; color: var(--orange); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
+                        <div style="font-size: 32px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> 5 à 15 membres</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Rapports complets PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--orange); margin-right: 10px;"></i> Alertes Email & SMS</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> 5 à 15 membres</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Alertes Email & SMS</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -1031,13 +1003,13 @@ if(isset($_SESSION['user_id'])) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="300">
                     <div class="feature-card">
                         <h3 style="font-size: 28px; margin-bottom: 20px;">Pro</h3>
-                        <div style="font-size: 36px; font-weight: 700; color: var(--violet); margin-bottom: 20px;">10 000 FCFA <small style="font-size: 16px;">/mois</small></div>
+                        <div style="font-size: 36px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">10 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Plus de 16 membres </li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Alertes Email & SMS</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Rapports complets PDF</li>
-                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--violet); margin-right: 10px;"></i> Support VIP</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Plus de 16 membres </li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Toutes les fonctionnalités</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Alertes Email & SMS</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Rapports complets PDF</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> Support VIP</li>
                         </ul>
                         <a href="views/auth/register.php" class="btn-primary-custom" style="width: 100%;">Commencer</a>
                     </div>
@@ -1182,7 +1154,7 @@ if(isset($_SESSION['user_id'])) {
                 </div>
             </div>
             <div class="copyright">
-                &copy; 2025 TONTONTINE. Tous droits réservés. Créé avec <i class="fas fa-heart" style="color: var(--orange);"></i> pour les tontines.
+                &copy; 2025 TONTONTINE. Tous droits réservés. Créé avec <i class="fas fa-heart" style="color: var(--primary);"></i> pour les tontines.
             </div>
         </div>
     </footer>

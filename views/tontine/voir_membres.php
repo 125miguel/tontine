@@ -65,100 +65,134 @@ $membres = $stmt;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
         body {
-            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            background: var(--bg-light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .navbar {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
         }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
         .card {
             border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
         }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
+        
         .btn-primary {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
             border: none;
         }
+        
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.3);
+            background: var(--primary-light);
         }
+        
         .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: var(--success);
             border: none;
         }
+        
         .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+            background: #0E9F6E;
         }
+        
         .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            background: var(--warning);
             border: none;
-            color: #333;
+            color: var(--white);
         }
+        
         .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255, 193, 7, 0.3);
+            background: #D97706;
         }
+        
         .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            background: var(--danger);
             border: none;
         }
+        
         .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(220, 53, 69, 0.3);
+            background: #DC2626;
         }
+        
         .btn-outline-primary {
-            border: 2px solid #6B46C1;
-            color: #6B46C1;
+            border: 2px solid var(--primary);
+            color: var(--primary);
             background: transparent;
         }
+        
         .btn-outline-primary:hover {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
         }
+        
         .btn-outline-warning {
-            border: 2px solid #ffc107;
-            color: #ffc107;
+            border: 2px solid var(--warning);
+            color: var(--warning);
             background: transparent;
         }
+        
         .btn-outline-warning:hover {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #333;
+            background: var(--warning);
+            color: var(--white);
         }
+        
         .btn-outline-danger {
-            border: 2px solid #dc3545;
-            color: #dc3545;
+            border: 2px solid var(--danger);
+            color: var(--danger);
             background: transparent;
         }
+        
         .btn-outline-danger:hover {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
+            background: var(--danger);
+            color: var(--white);
         }
+        
         .badge-actif {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
+            background: var(--success);
+            color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 12px;
         }
+        
         .badge-inactif {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-            color: white;
+            background: var(--text-light);
+            color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 12px;
         }
+        
         .badge-ordre-final {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
+            background: var(--success);
+            color: var(--white);
             padding: 8px 12px;
             border-radius: 50%;
             font-size: 16px;
@@ -169,9 +203,10 @@ $membres = $stmt;
             align-items: center;
             justify-content: center;
         }
+        
         .badge-ordre-temp {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #333;
+            background: var(--warning);
+            color: var(--white);
             padding: 8px 12px;
             border-radius: 50%;
             font-size: 16px;
@@ -182,35 +217,56 @@ $membres = $stmt;
             align-items: center;
             justify-content: center;
         }
+        
         .alert {
             border-radius: 10px;
             border: none;
         }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
+        .alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        
         .alert-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            color: white;
+            background: #DBEAFE;
+            color: var(--primary);
             border: none;
         }
+        
         .alert-info .badge {
-            background: white !important;
-            color: #17a2b8 !important;
+            background: var(--primary) !important;
+            color: var(--white) !important;
             font-size: 18px;
             padding: 8px 15px;
         }
+        
         .table th {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             font-weight: 600;
         }
+        
         .table td {
             vertical-align: middle;
         }
+        
         .association-badge {
             background: rgba(255,255,255,0.2);
             padding: 5px 15px;
             border-radius: 50px;
             font-size: 14px;
-            color: white;
+            color: var(--white);
         }
     </style>
 </head>
@@ -221,13 +277,13 @@ $membres = $stmt;
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="nav-link text-white">
+                <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($_SESSION['association_nom']) ?>
                 </span>
-                <a class="nav-link text-white" href="ajouter_membre.php?id=<?= $tontine_id ?>">
+                <a class="nav-link" href="ajouter_membre.php?id=<?= $tontine_id ?>">
                     <i class="bi bi-person-plus"></i> Ajouter
                 </a>
-                <a class="nav-link text-white" href="mes_tontines.php">
+                <a class="nav-link" href="mes_tontines.php">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
             </div>

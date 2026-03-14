@@ -38,95 +38,168 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
         body {
-            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            background: var(--bg-light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .navbar {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
         }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
         .card {
             border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             margin-bottom: 20px;
+            transition: all 0.3s;
         }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.1);
+            border-color: var(--primary);
+        }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
+        
         .btn-primary {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
             border: none;
         }
+        
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.3);
+            background: var(--primary-light);
         }
+        
         .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: var(--success);
             border: none;
         }
+        
         .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+            background: #0E9F6E;
         }
+        
         .btn-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            background: var(--info);
             border: none;
-            color: white;
+            color: var(--white);
         }
+        
         .btn-info:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(23, 162, 184, 0.3);
+            background: #2563EB;
         }
+        
         .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            background: var(--warning);
             border: none;
-            color: #333;
+            color: var(--white);
         }
+        
         .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255, 193, 7, 0.3);
+            background: #D97706;
         }
+        
         .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            background: var(--danger);
             border: none;
         }
+        
         .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(220, 53, 69, 0.3);
+            background: #DC2626;
         }
+        
         .btn-outline-danger {
-            border: 2px solid #dc3545;
-            color: #dc3545;
+            border: 2px solid var(--danger);
+            color: var(--danger);
             background: transparent;
         }
+        
         .btn-outline-danger:hover {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
+            background: var(--danger);
+            color: var(--white);
         }
+        
         .danger-zone {
-            border: 2px solid #dc3545;
+            border: 2px solid var(--danger);
             border-radius: 15px;
             padding: 20px;
             margin-top: 20px;
-            background: rgba(220, 53, 69, 0.05);
+            background: rgba(239, 68, 68, 0.05);
         }
+        
         .danger-zone h5 {
-            color: #dc3545;
+            color: var(--danger);
             font-weight: 700;
             margin-bottom: 15px;
         }
+        
         .badge-type {
             font-size: 12px;
             padding: 5px 10px;
             border-radius: 20px;
             background: rgba(255,255,255,0.2);
-            color: white;
+            color: var(--white);
             margin-left: 10px;
         }
+        
+        .badge-success {
+            background: var(--success);
+            color: var(--white);
+        }
+        
+        .badge-secondary {
+            background: var(--text-light);
+            color: var(--white);
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+        }
+        
+        .alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border: none;
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+        }
+        
         .association-badge {
             background: rgba(255,255,255,0.2);
             padding: 5px 15px;
@@ -143,10 +216,10 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="nav-link text-white">
+                <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($_SESSION['association_nom']) ?>
                 </span>
-                <a class="nav-link text-white" href="../dashboard.php">
+                <a class="nav-link" href="../dashboard.php">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
             </div>
@@ -203,9 +276,9 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span class="badge-type"><?= $row['type_tontine'] ?></span>
                                     </h5>
                                     <?php if($row['mode_beneficiaire'] == 'auto'): ?>
-                                        <span class="badge bg-success">🤖 Auto</span>
+                                        <span class="badge badge-success"> Auto</span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">👤 Manuel</span>
+                                        <span class="badge badge-secondary"> Manuel</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -245,7 +318,6 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 if(!$tontine->aDesActivites()):
                                 ?>
                                     <div class="danger-zone">
-                                        <h5><i class="bi bi-exclamation-triangle"></i> Zone de danger</h5>
                                         <p class="text-muted small mb-3">Cette tontine n'a aucune activité. Vous pouvez la supprimer définitivement.</p>
                                         <a href="supprimer_tontine.php?id=<?= $row['id'] ?>" 
                                            class="btn btn-outline-danger btn-sm"

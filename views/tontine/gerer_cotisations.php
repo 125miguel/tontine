@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -171,12 +171,165 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
     <title>Gérer les cotisations</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
+        body {
+            background: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: var(--primary);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
+        .card {
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 15px 15px 0 0 !important;
+        }
+        
+        .card-header.bg-warning {
+            background: var(--warning) !important;
+            color: var(--white);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: #0E9F6E;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            border: none;
+            color: var(--white);
+        }
+        
+        .btn-warning:hover {
+            background: #D97706;
+        }
+        
+        .btn-info {
+            background: var(--info);
+            border: none;
+            color: var(--white);
+        }
+        
+        .btn-info:hover {
+            background: #2563EB;
+        }
+        
+        .badge.bg-success {
+            background: var(--success) !important;
+            color: var(--white);
+        }
+        
+        .badge.bg-warning {
+            background: var(--warning) !important;
+            color: var(--white);
+        }
+        
+        .badge.bg-secondary {
+            background: var(--text-light) !important;
+            color: var(--white);
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            padding: 10px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .table th {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        .text-muted {
+            color: var(--text-light) !important;
+        }
+        
+        .table-warning {
+            background-color: #FEF3C7;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-bank2"></i> Tontine
+                <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="mes_tontines.php">
@@ -200,11 +353,11 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 <?php endif; ?>
 
                 <div class="card">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"> Gestion des cotisations</h4>
-                       <span class="badge bg-light text-dark">
-                                Séance du <?= date('d/m/Y', strtotime($seance->date_seance)) ?>
-                       </span>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="bi bi-cash-stack"></i> Gestion des cotisations</h4>
+                        <span class="badge bg-light text-dark">
+                            Séance du <?= date('d/m/Y', strtotime($seance->date_seance)) ?>
+                        </span>
                     </div>
                     <div class="card-body">
                         
@@ -233,7 +386,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                         <!-- Liste des membres -->
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead class="table-light">
+                                <thead>
                                     <tr>
                                         <th>Ordre</th>
                                         <th>Membre</th>
@@ -284,7 +437,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
 
                         <!-- Section pour appliquer des amendes manuelles -->
                         <div class="card mt-4">
-                            <div class="card-header bg-warning">
+                            <div class="card-header" style="background: var(--warning); color: var(--white);">
                                 <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Appliquer une amende manuelle</h5>
                             </div>
                             <div class="card-body">
@@ -339,7 +492,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                         <!-- Section des amendes -->
                         <?php if(!empty($amendes)): ?>
                             <div class="card mt-4">
-                                <div class="card-header bg-warning">
+                                <div class="card-header" style="background: var(--warning); color: var(--white);">
                                     <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Amendes appliquées</h5>
                                 </div>
                                 <div class="card-body">
@@ -414,10 +567,10 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                class="btn btn-warning">
                                 <i class="bi bi-trophy"></i> Désigner le bénéficiaire (même avec des impayés)
                             </a>
-                            <a href="rapport_seance.php?seance_id=<?= $seance_id ?>" class="btn btn-info btn-sm">
+                            <a href="rapport_seance.php?seance_id=<?= $seance_id ?>" class="btn btn-info">
                                 <i class="bi bi-file-text"></i> Rapport
                             </a>
-                            <a href="gestion_presences.php?seance_id=<?= $seance_id ?>" class="btn btn-info btn-sm">
+                            <a href="gestion_presences.php?seance_id=<?= $seance_id ?>" class="btn btn-info">
                                 <i class="bi bi-person-check"></i> Présences
                             </a>
                         </div>

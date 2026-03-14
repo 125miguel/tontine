@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -161,16 +161,33 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>États - <?= htmlspecialchars($tontine->nom) ?></title>
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            background: #f5f0ff;
+            background: var(--bg-light);
             font-family: Arial, sans-serif;
+            color: var(--text-dark);
         }
+        
         .navbar {
-            background: linear-gradient(135deg, #6B46C1, #FF8A4C);
+            background: var(--primary);
             padding: 15px 0;
-            color: white;
+            color: var(--white);
         }
+        
         .navbar .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -178,85 +195,140 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
             display: flex;
             justify-content: space-between;
         }
+        
         .navbar a {
-            color: white;
+            color: var(--white);
             text-decoration: none;
         }
+        
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+        
         .container {
             max-width: 1200px;
             margin: 30px auto;
             padding: 0 20px;
         }
+        
         .tabs {
             display: flex;
             gap: 5px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #6B46C1;
+            border-bottom: 2px solid var(--primary);
+            flex-wrap: wrap;
         }
+        
         .tab {
             padding: 10px 20px;
             background: none;
             border: none;
-            color: #6B46C1;
+            color: var(--primary);
             font-weight: bold;
             cursor: pointer;
-        }
-        .tab.active {
-            background: linear-gradient(135deg, #6B46C1, #FF8A4C);
-            color: white;
+            font-size: 14px;
             border-radius: 5px 5px 0 0;
         }
+        
+        .tab.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
         .card {
-            background: white;
+            background: var(--white);
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            border: 1px solid var(--border);
         }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1, #FF8A4C);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 15px 20px;
             border-radius: 10px 10px 0 0;
+            font-weight: bold;
         }
+        
         .card-body { padding: 20px; }
+        
         .row { display: flex; gap: 20px; flex-wrap: wrap; }
         .col { flex: 1; min-width: 200px; }
+        
         .stat-box {
-            background: #f8f9fa;
+            background: var(--bg-light);
             padding: 20px;
             text-align: center;
             border-radius: 10px;
+            border: 1px solid var(--border);
         }
-        .stat-number { font-size: 32px; font-weight: bold; color: #6B46C1; }
+        
+        .stat-number { 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: var(--primary); 
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
         }
+        
         th {
-            background: #6B46C1;
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 10px;
             text-align: left;
         }
+        
         td {
             padding: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
         }
+        
+        tr:hover {
+            background-color: var(--bg-light);
+        }
+        
         .btn {
             display: inline-block;
             padding: 10px 20px;
-            background: linear-gradient(135deg, #6B46C1, #FF8A4C);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             text-decoration: none;
             border-radius: 5px;
+            border: none;
+            cursor: pointer;
         }
-        .text-success { color: #28a745; }
-        .text-warning { color: #ffc107; }
-        .text-danger { color: #dc3545; }
+        
+        .btn:hover {
+            background: var(--primary-light);
+        }
+        
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+        
         .mt-5 { margin-top: 30px; }
         .text-center { text-align: center; }
+        
+        .detail-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--primary-light);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .detail-link:hover {
+            background: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -275,9 +347,9 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="tabs">
             <button class="tab active" onclick="window.showTab('general', this)"> État Général</button>
-            <button class="tab" onclick="window.showTab('membres', this)">État Membres</button>
-            <button class="tab" onclick="window.showTab('seances', this)">État Séances</button>
-            <button class="tab" onclick="window.showTab('retards', this)">État Retards</button>
+            <button class="tab" onclick="window.showTab('membres', this)"> État Membres</button>
+            <button class="tab" onclick="window.showTab('seances', this)"> État Séances</button>
+            <button class="tab" onclick="window.showTab('retards', this)"> État Retards</button>
         </div>
 
         <div id="general" class="tab-content active">
@@ -296,7 +368,7 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
 
         <div id="membres" class="tab-content">
             <div class="card">
-                <div class="card-header"> État des membres</div>
+                <div class="card-header">👥 État des membres</div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col"><div class="stat-box"><div class="stat-number text-success"><?= $membres_a_jour ?></div><div>À jour</div></div></div>
@@ -361,7 +433,10 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
-        <a href="etats_detail_membres.php?tontine_id=<?= $tontine_id ?>" class="tab" style="text-decoration: none; display: inline-block; padding: 10px 20px; background: none; color: #6B46C1; font-weight: bold;">📋 Détail par membre</a>
+        
+        <div class="text-center">
+            <a href="etats_detail_membres.php?tontine_id=<?= $tontine_id ?>" class="detail-link"> Détail par membre</a>
+        </div>
 
         <div class="text-center mt-5">
             <a href="../tontine/mes_tontines.php" class="btn">← Retour</a>

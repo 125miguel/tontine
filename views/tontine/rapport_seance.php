@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -108,40 +108,86 @@ $notes = $seance->getNotes($seance_id);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
-        body { background: #f8f9fa; }
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
+        body { 
+            background: var(--bg-light); 
+            color: var(--text-dark);
+        }
+        
         .rapport-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 30px 0;
             margin-bottom: 30px;
         }
+        
         .card {
             border-radius: 15px;
-            border: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
-        .table th {
-            background: #f8f9fa;
+        
+        .card-header.bg-info {
+            background: var(--info) !important;
         }
-        .badge-paye { background: #28a745; color: white; }
-        .badge-impaye { background: #dc3545; color: white; }
-        .badge-retard { background: #ffc107; color: black; }
+        
+        .table th {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        .badge-paye { 
+            background: var(--success); 
+            color: var(--white); 
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .badge-impaye { 
+            background: var(--danger); 
+            color: var(--white); 
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .badge-retard { 
+            background: var(--warning); 
+            color: var(--white); 
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
         .total-box {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 20px;
             border-radius: 10px;
             text-align: center;
         }
+        
         .print-btn {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border: none;
             padding: 12px 30px;
             border-radius: 10px;
@@ -149,15 +195,82 @@ $notes = $seance->getNotes($seance_id);
             cursor: pointer;
             transition: all 0.3s;
         }
+        
         .print-btn:hover {
+            background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.4);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
         }
+        
         .action-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
             margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: #0E9F6E;
+        }
+        
+        .btn-info {
+            background: var(--info);
+            border: none;
+        }
+        
+        .btn-info:hover {
+            background: #2563EB;
+        }
+        
+        .badge.bg-success {
+            background: var(--success) !important;
+            color: var(--white);
+        }
+        
+        .badge.bg-danger {
+            background: var(--danger) !important;
+            color: var(--white);
+        }
+        
+        .badge.bg-warning {
+            background: var(--warning) !important;
+            color: var(--white);
         }
     </style>
 </head>

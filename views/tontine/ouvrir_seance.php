@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -92,12 +92,107 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
     <title>Ouvrir une séance</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --danger: #EF4444;
+            --success: #10B981;
+            --info: #3B82F6;
+        }
+        
+        body {
+            background: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: var(--primary);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
+        .card {
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        
+        .card-header {
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 15px 15px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: #0E9F6E;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            padding: 12px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .text-muted {
+            color: var(--text-light) !important;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-bank2"></i> Tontine
+                <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="mes_tontines.php">
@@ -111,7 +206,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ouvrir_seance'])) {
         <div class="row">
             <div class="col-md-8 offset-md-2">
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header">
                         <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Ouvrir une séance pour "<?= htmlspecialchars($tontine->nom) ?>"</h4>
                     </div>
                     <div class="card-body">

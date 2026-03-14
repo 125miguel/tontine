@@ -152,11 +152,11 @@ if($tontine->mode_beneficiaire == 'auto') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         body {
-            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            background-color: #f8f9fc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .navbar {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             padding: 15px 0;
             box-shadow: 0 2px 20px rgba(0,0,0,0.1);
         }
@@ -165,8 +165,14 @@ if($tontine->mode_beneficiaire == 'auto') {
             font-size: 24px;
             font-weight: 700;
         }
+        .navbar-brand:hover {
+            color: #e0e0e0;
+        }
         .nav-link {
             color: white !important;
+        }
+        .nav-link:hover {
+            color: #e0e0e0 !important;
         }
         .card {
             border-radius: 15px;
@@ -177,13 +183,18 @@ if($tontine->mode_beneficiaire == 'auto') {
         }
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.1);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.1);
         }
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             color: white;
             border-radius: 15px 15px 0 0 !important;
             font-weight: 600;
+            border-bottom: none;
+            padding: 15px 20px;
+        }
+        .card-header i {
+            margin-right: 8px;
         }
         .stat-card {
             background: white;
@@ -192,10 +203,11 @@ if($tontine->mode_beneficiaire == 'auto') {
             text-align: center;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             height: 100%;
+            border: 1px solid #e9ecef;
         }
         .stat-icon {
             font-size: 40px;
-            color: #6B46C1;
+            color: #1E3A8A;
             margin-bottom: 15px;
         }
         .stat-number {
@@ -222,38 +234,82 @@ if($tontine->mode_beneficiaire == 'auto') {
             color: white;
             padding: 5px 10px;
             border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
         }
         .badge-impaye {
             background: #dc3545;
             color: white;
             padding: 5px 10px;
             border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
         }
         .badge-attente {
             background: #ffc107;
             color: #000;
             padding: 5px 10px;
             border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
         }
         .tontine-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background-color: #1E3A8A;
             color: white;
             padding: 30px 0;
             margin-bottom: 30px;
         }
         .btn-retour {
             background: white;
-            color: #6B46C1;
+            color: #1E3A8A;
             border-radius: 50px;
             padding: 10px 25px;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s;
+            border: 2px solid white;
         }
         .btn-retour:hover {
+            background: #1E3A8A;
+            color: white;
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            color: #FF8A4C;
+        }
+        .table thead th {
+            background-color: #f8f9fc;
+            color: #1E3A8A;
+            border-bottom: 2px solid #1E3A8A;
+            font-weight: 600;
+        }
+        .badge {
+            font-weight: 500;
+            padding: 5px 10px;
+        }
+        .bg-light.text-dark {
+            background-color: rgba(255,255,255,0.2) !important;
+            color: white !important;
+            padding: 5px 15px;
+        }
+        h1, h2, h3, h4 {
+            color: #2D3748;
+        }
+        .tontine-header h1 {
+            color: white;
+        }
+        .text-primary-custom {
+            color: #1E3A8A;
+        }
+        .btn-primary-custom {
+            background-color: #1E3A8A;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .btn-primary-custom:hover {
+            background-color: #152b63;
+            color: white;
         }
     </style>
 </head>
@@ -267,10 +323,10 @@ if($tontine->mode_beneficiaire == 'auto') {
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="nav-link">
-                    <i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['user_nom']) ?>
+                    <i class="bi bi-person-circle me-1"></i> <?= htmlspecialchars($_SESSION['user_nom']) ?>
                 </span>
                 <a class="nav-link" href="../logout.php">
-                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                    <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
                 </a>
             </div>
         </div>
@@ -283,12 +339,12 @@ if($tontine->mode_beneficiaire == 'auto') {
                 <div>
                     <h1 class="mb-2"><?= htmlspecialchars($tontine->nom) ?></h1>
                     <p class="mb-0">
-                        <span class="badge bg-light text-dark me-2"><?= $tontine->type_tontine ?></span>
-                        <span class="badge bg-light text-dark"><?= $total_membres ?> membres</span>
+                        <span class="badge bg-light text-dark me-2"><?= ucfirst($tontine->type_tontine) ?></span>
+                        <span class="badge bg-light text-dark"><?= $total_membres ?> membre<?= $total_membres > 1 ? 's' : '' ?></span>
                     </p>
                 </div>
                 <a href="../dashboard.php" class="btn-retour">
-                    <i class="bi bi-arrow-left me-2"></i>Retour
+                    <i class="bi bi-arrow-left me-2"></i>Retour au tableau de bord
                 </a>
             </div>
         </div>
@@ -340,96 +396,109 @@ if($tontine->mode_beneficiaire == 'auto') {
         <?php if($tontine->mode_beneficiaire == 'auto' && $prochain_beneficiaire): ?>
         <div class="card mb-4">
             <div class="card-header">
-                <i class="bi bi-trophy me-2"></i>Prochain bénéficiaire (mode automatique)
+                <i class="bi bi-trophy"></i> Prochain bénéficiaire (mode automatique)
             </div>
             <div class="card-body">
-                <h3 class="text-center"><?= htmlspecialchars($prochain_beneficiaire['prenom'] . ' ' . $prochain_beneficiaire['nom']) ?></h3>
-                <p class="text-center text-muted">Ordre n°<?= $prochain_beneficiaire['ordre_tour'] ?></p>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Dernières cotisations -->
-        <?php if(!empty($dernieres_cotisations)): ?>
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-clock-history me-2"></i>Dernières cotisations
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Montant</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($dernieres_cotisations as $c): ?>
-                            <tr>
-                                <td><?= date('d/m/Y', strtotime($c['date_seance'])) ?></td>
-                                <td class="<?= $c['statut'] == 'paye' ? 'amount-positive' : 'amount-negative' ?>">
-                                    <?= number_format($c['montant'], 0, ',', ' ') ?> F
-                                </td>
-                                <td>
-                                    <?php if($c['statut'] == 'paye'): ?>
-                                        <span class="badge-paye">Payé</span>
-                                    <?php elseif($c['statut'] == 'retard'): ?>
-                                        <span class="badge-impaye">Retard</span>
-                                    <?php else: ?>
-                                        <span class="badge-attente">En attente</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <div class="row align-items-center">
+                    <div class="col text-center">
+                        <div class="display-4 mb-3 text-primary-custom">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                        <h3 class="mb-2"><?= htmlspecialchars($prochain_beneficiaire['prenom'] . ' ' . $prochain_beneficiaire['nom']) ?></h3>
+                        <p class="text-muted mb-0">Ordre n°<?= $prochain_beneficiaire['ordre_tour'] ?></p>
+                    </div>
                 </div>
             </div>
         </div>
         <?php endif; ?>
 
-        <!-- Liste des amendes -->
-        <?php if(!empty($amendes)): ?>
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-exclamation-triangle me-2"></i>Mes amendes
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Montant</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($amendes as $a): ?>
-                            <tr>
-                                <td><?= date('d/m/Y', strtotime($a['date_application'])) ?></td>
-                                <td><?= str_replace('_', ' ', $a['type_amende'] ?? 'Amende') ?></td>
-                                <td class="<?= $a['est_paye'] ? 'amount-positive' : 'amount-negative' ?>">
-                                    <?= number_format($a['montant'], 0, ',', ' ') ?> F
-                                </td>
-                                <td>
-                                    <?php if($a['est_paye']): ?>
-                                        <span class="badge-paye">Payé</span>
-                                    <?php else: ?>
-                                        <span class="badge-impaye">Impayé</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+        <div class="row">
+            <!-- Dernières cotisations -->
+            <div class="col-md-6">
+                <?php if(!empty($dernieres_cotisations)): ?>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-clock-history"></i> Dernières cotisations
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Montant</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach($dernieres_cotisations as $c): ?>
+                                    <tr>
+                                        <td><?= date('d/m/Y', strtotime($c['date_seance'])) ?></td>
+                                        <td class="<?= $c['statut'] == 'paye' ? 'amount-positive' : 'amount-negative' ?>">
+                                            <?= number_format($c['montant'], 0, ',', ' ') ?> F
+                                        </td>
+                                        <td>
+                                            <?php if($c['statut'] == 'paye'): ?>
+                                                <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                                            <?php elseif($c['statut'] == 'retard'): ?>
+                                                <span class="badge-impaye"><i class="bi bi-exclamation-circle me-1"></i>Retard</span>
+                                            <?php else: ?>
+                                                <span class="badge-attente"><i class="bi bi-hourglass me-1"></i>En attente</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Liste des amendes -->
+            <div class="col-md-6">
+                <?php if(!empty($amendes)): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-exclamation-triangle"></i> Mes amendes
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Montant</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach($amendes as $a): ?>
+                                    <tr>
+                                        <td><?= date('d/m/Y', strtotime($a['date_application'])) ?></td>
+                                        <td><?= ucfirst(str_replace('_', ' ', $a['type_amende'] ?? 'Amende')) ?></td>
+                                        <td class="<?= $a['est_paye'] ? 'amount-positive' : 'amount-negative' ?>">
+                                            <?= number_format($a['montant'], 0, ',', ' ') ?> F
+                                        </td>
+                                        <td>
+                                            <?php if($a['est_paye']): ?>
+                                                <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                                            <?php else: ?>
+                                                <span class="badge-impaye"><i class="bi bi-x-circle me-1"></i>Impayé</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
-        <?php endif; ?>
 
     </div>
 

@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 session_start();
 
 // Vérifier si l'utilisateur est connecté et est admin
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -76,51 +76,100 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --danger: #EF4444;
+            --success: #10B981;
+        }
+        
         body {
-            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            background: var(--bg-light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .navbar {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
         }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
         .card {
             border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
         }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
+        
         .form-control, .form-select {
             border-radius: 10px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border);
             padding: 12px;
             transition: all 0.3s;
         }
+        
         .form-control:focus, .form-select:focus {
-            border-color: #6B46C1;
+            border-color: var(--primary);
             box-shadow: none;
+            outline: none;
         }
+        
         .btn-primary {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
             border: none;
             padding: 12px;
             border-radius: 10px;
             font-weight: 600;
             transition: all 0.3s;
         }
+        
         .btn-primary:hover {
+            background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.3);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
         }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 10px;
+        }
+        
         .badge-association {
             background: rgba(255,255,255,0.2);
-            color: white;
+            color: var(--white);
             padding: 5px 15px;
             border-radius: 50px;
             font-size: 14px;
+        }
+        
+        .text-danger {
+            color: var(--danger) !important;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--text-dark);
         }
     </style>
 </head>
@@ -131,10 +180,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="nav-link text-white">
+                <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($association['nom']) ?>
                 </span>
-                <a class="nav-link text-white" href="mes_tontines.php">
+                <a class="nav-link" href="mes_tontines.php">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
             </div>
@@ -174,18 +223,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Type de tontine</label>
                                     <select name="type_tontine" class="form-select">
-                                        <option value="anniversaire" <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'selected' : '' ?>> Anniversaire</option>
+                                        <option value="anniversaire" <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'selected' : '' ?>> Evènement</option>
                                         <option value="djangui" <?= ($_POST['type_tontine'] ?? '') == 'djangui' ? 'selected' : '' ?>> Djangui</option>
                                         <option value="solidarite" <?= ($_POST['type_tontine'] ?? '') == 'solidarite' ? 'selected' : '' ?>> Solidarité</option>
-                                        <option value="deuil" <?= ($_POST['type_tontine'] ?? '') == 'deuil' ? 'selected' : '' ?>> Deuil</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Mode bénéficiaire</label>
                                     <select name="mode_beneficiaire" class="form-select">
-                                        <option value="manuel" <?= ($_POST['mode_beneficiaire'] ?? '') == 'manuel' ? 'selected' : '' ?>>👤 Manuel</option>
-                                        <option value="auto" <?= ($_POST['mode_beneficiaire'] ?? '') == 'auto' ? 'selected' : '' ?>>🤖 Automatique</option>
+                                        <option value="manuel" <?= ($_POST['mode_beneficiaire'] ?? '') == 'manuel' ? 'selected' : '' ?>> Manuel</option>
+                                        <option value="auto" <?= ($_POST['mode_beneficiaire'] ?? '') == 'auto' ? 'selected' : '' ?>> Automatique</option>
                                     </select>
                                 </div>
                             </div>

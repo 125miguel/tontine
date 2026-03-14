@@ -212,57 +212,166 @@ if($userRole == 'admin') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
-        body { background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%); }
-        .navbar { background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%); }
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
+        body { 
+            background: var(--bg-light); 
+            color: var(--text-dark);
+        }
+        
+        .navbar { 
+            background: var(--primary); 
+        }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
+        .nav-link:hover {
+            color: rgba(255,255,255,0.8) !important;
+        }
+        
         .stat-card {
-            background: white;
+            background: var(--white);
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             transition: transform 0.3s;
             height: 100%;
+            border: 1px solid var(--border);
         }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-icon { font-size: 40px; color: #6B46C1; margin-bottom: 15px; }
-        .stat-number { font-size: 28px; font-weight: 600; color: #333; }
-        .stat-label { color: #666; font-size: 14px; text-transform: uppercase; }
+        
+        .stat-card:hover { 
+            transform: translateY(-5px); 
+            border-color: var(--primary);
+        }
+        
+        .stat-icon { 
+            font-size: 40px; 
+            color: var(--primary); 
+            margin-bottom: 15px; 
+        }
+        
+        .stat-number { 
+            font-size: 28px; 
+            font-weight: 600; 
+            color: var(--text-dark); 
+        }
+        
+        .stat-label { 
+            color: var(--text-light); 
+            font-size: 14px; 
+            text-transform: uppercase; 
+        }
+        
         .section-title {
             margin: 30px 0 20px;
             font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #6B46C1;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--primary);
             padding-bottom: 10px;
         }
-        .list-group-item { border-left: none; border-right: none; }
-        .badge-amende { background: #ffc107; color: #000; }
+        
+        .list-group-item { 
+            border-left: none; 
+            border-right: none; 
+            border-color: var(--border);
+        }
+        
+        .badge-amende { 
+            background: var(--warning); 
+            color: var(--white); 
+        }
+        
         .tontine-active {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
         }
+        
         .tontine-active a {
-            color: white;
+            color: var(--white);
             text-decoration: underline;
         }
+        
         .card {
             border-radius: 15px;
             border: none;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--border);
         }
+        
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.1);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.1);
+            border-color: var(--primary);
         }
+        
         .card-header {
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        .btn-outline-success {
+            border: 2px solid var(--success);
+            color: var(--success);
+        }
+        
+        .btn-outline-success:hover {
+            background: var(--success);
+            color: var(--white);
+        }
+        
+        .btn-outline-info {
+            border: 2px solid var(--info);
+            color: var(--info);
+        }
+        
+        .btn-outline-info:hover {
+            background: var(--info);
+            color: var(--white);
+        }
+        
         a {
             text-decoration: none;
             color: inherit;
         }
+        
         .association-badge {
             background: rgba(255,255,255,0.2);
             padding: 5px 15px;
@@ -270,21 +379,49 @@ if($userRole == 'admin') {
             font-size: 14px;
             margin-left: 10px;
         }
+        
         .badge-ordre-final {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
+            background: var(--success);
+            color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: 600;
         }
+        
         .badge-ordre-temp {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #333;
+            background: var(--warning);
+            color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: 600;
+        }
+        
+        .badge-success {
+            background: var(--success);
+            color: var(--white);
+        }
+        
+        .badge-warning {
+            background: var(--warning);
+            color: var(--white);
+        }
+        
+        .badge-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+        }
+        
+        .alert-info .badge {
+            background: var(--primary);
+            color: var(--white);
         }
     </style>
 </head>
@@ -416,7 +553,7 @@ if($userRole == 'admin') {
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-gear"></i> Actions rapides</h5>
                         </div>
                         <div class="card-body">
@@ -438,7 +575,7 @@ if($userRole == 'admin') {
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <div class="card">
-                        <div class="card-header bg-info text-white">
+                        <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Dernières séances</h5>
                         </div>
                         <div class="card-body">
@@ -463,7 +600,7 @@ if($userRole == 'admin') {
                 <!-- MEMBRES AVEC AMENDES -->
                 <div class="col-md-6 mb-4">
                     <div class="card">
-                        <div class="card-header bg-warning">
+                        <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Amendes impayées</h5>
                         </div>
                         <div class="card-body">
@@ -523,7 +660,7 @@ if($userRole == 'admin') {
                         <div class="col-md-6 mb-3">
                             <a href="tontine/details_tontine.php?id=<?= $t['id'] ?>" style="text-decoration: none; color: inherit;">
                                 <div class="card h-100">
-                                    <div class="card-header bg-primary text-white">
+                                    <div class="card-header">
                                         <h5 class="mb-0"><?= htmlspecialchars($t['nom']) ?></h5>
                                     </div>
                                     <div class="card-body">

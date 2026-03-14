@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+if(!isset($_SESSION['user_id']) || $_SESSION['association_role'] != 'admin') {
     header("Location: ../auth/login.php");
     exit();
 }
@@ -196,54 +196,140 @@ if(!empty($search)) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
         body {
-            background: linear-gradient(135deg, #f5f0ff 0%, #fff5f0 100%);
+            background: var(--bg-light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
         .navbar {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
         }
+        
+        .navbar-brand, .nav-link {
+            color: var(--white) !important;
+        }
+        
         .card {
             border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(107, 70, 193, 0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
         }
+        
         .card-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 15px 15px 0 0 !important;
         }
+        
+        .card-header.bg-success {
+            background: var(--success) !important;
+        }
+        
         .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: var(--success);
             border: none;
         }
+        
         .btn-success:hover {
+            background: #0E9F6E;
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
         }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+        
         .temp-password {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
+            border: 1px solid var(--border);
         }
+        
         .password-value {
             font-size: 24px;
             font-weight: bold;
             letter-spacing: 2px;
-            background: white;
-            color: #6B46C1;
+            background: var(--white);
+            color: var(--primary);
             padding: 10px 20px;
             border-radius: 10px;
             display: inline-block;
         }
+        
         .info-box {
-            background: #e7f5ff;
-            border-left: 4px solid #0d6efd;
+            background: #DBEAFE;
+            border-left: 4px solid var(--primary);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: #DBEAFE;
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            padding: 10px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .text-muted {
+            color: var(--text-light) !important;
         }
     </style>
 </head>
@@ -254,7 +340,7 @@ if(!empty($search)) {
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="nav-link text-white">
+                <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($association['nom']) ?>
                 </span>
                 <a class="nav-link" href="voir_membres.php?id=<?= $tontine_id ?>">
@@ -274,7 +360,7 @@ if(!empty($search)) {
                 <!-- Message pour afficher le mot de passe temporaire -->
                 <?php if(isset($_GET['created']) && isset($_SESSION['temp_password'])): ?>
                     <div class="temp-password">
-                        <h5 class="mb-3"><i class="bi bi-check-circle"></i> Membre créé avec succès !</h5>
+                        <h5 class="mb-3"><i class="bi bi-check-circle"></i>  Membre créé avec succès !</h5>
                         <p>
                             <strong>Email :</strong> <?= htmlspecialchars($_SESSION['temp_user']) ?><br>
                             <strong>Mot de passe temporaire :</strong> 
@@ -348,7 +434,7 @@ if(!empty($search)) {
                                 
                                 <!-- Formulaire de création -->
                                 <div class="card mt-3">
-                                    <div class="card-header bg-success text-white">
+                                    <div class="card-header" style="background: var(--success); color: var(--white);">
                                         <h5 class="mb-0">Créer un nouveau membre pour votre association</h5>
                                     </div>
                                     <div class="card-body">

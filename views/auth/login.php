@@ -131,50 +131,68 @@ if(isset($_POST['login_association'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --primary: #1E3A8A;        /* Bleu sombre */
+            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --white: #FFFFFF;
+            --bg-light: #F8FAFC;
+            --text-dark: #0F172A;
+            --text-light: #475569;
+            --border: #E2E8F0;
+            --danger: #EF4444;
+        }
+        
         body {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
+            background: var(--primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Inter', sans-serif;
         }
+        
         .login-card {
-            background: white;
+            background: var(--white);
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             max-width: 450px;
             width: 100%;
             overflow: hidden;
         }
+        
         .login-header {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             padding: 40px 30px;
             text-align: center;
         }
+        
         .login-header h2 {
             font-weight: 700;
             margin-bottom: 10px;
         }
+        
         .login-body {
             padding: 40px 30px;
         }
+        
         .form-control, .form-select {
             border-radius: 10px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border);
             padding: 12px 15px;
             font-size: 15px;
             transition: all 0.3s;
         }
+        
         .form-control:focus, .form-select:focus {
-            border-color: #6B46C1;
+            border-color: var(--primary);
             box-shadow: none;
             outline: none;
         }
+        
         .btn-login {
-            background: linear-gradient(135deg, #6B46C1 0%, #FF8A4C 100%);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border: none;
             border-radius: 10px;
             padding: 14px;
@@ -183,14 +201,17 @@ if(isset($_POST['login_association'])) {
             width: 100%;
             transition: all 0.3s;
         }
+        
         .btn-login:hover {
+            background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.4);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.4);
         }
+        
         .btn-back {
-            background: white;
-            color: #6B46C1;
-            border: 2px solid #6B46C1;
+            background: var(--white);
+            color: var(--primary);
+            border: 2px solid var(--primary);
             border-radius: 10px;
             padding: 12px;
             font-size: 14px;
@@ -199,24 +220,55 @@ if(isset($_POST['login_association'])) {
             transition: all 0.3s;
             margin-top: 10px;
         }
+        
         .btn-back:hover {
-            background: #6B46C1;
-            color: white;
+            background: var(--primary);
+            color: var(--white);
         }
+        
         .alert {
             border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: none;
         }
+        
+        .alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
         .user-info {
-            background: #f8f9fa;
+            background: var(--bg-light);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
+            border: 1px solid var(--border);
         }
+        
         .user-info i {
-            color: #6B46C1;
+            color: var(--primary);
             font-size: 40px;
             margin-bottom: 10px;
+        }
+        
+        .user-info h5 {
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+        
+        .text-muted {
+            color: var(--text-light) !important;
+        }
+        
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -236,7 +288,7 @@ if(isset($_POST['login_association'])) {
                 <!-- ÉTAPE 1 : Saisie de l'identifiant -->
                 <form method="POST">
                     <div class="mb-4">
-                        <label class="form-label"> Email ou  Téléphone</label>
+                        <label class="form-label"> Email ou Téléphone</label>
                         <input type="text" name="identifiant" class="form-control" 
                                value="<?= htmlspecialchars($_POST['identifiant'] ?? '') ?>" 
                                placeholder="exemple@email.com ou 691234567" required>
@@ -247,7 +299,7 @@ if(isset($_POST['login_association'])) {
                     </button>
                     
                     <div class="text-center mt-3">
-                        <a href="register.php" class="text-decoration-none" style="color: #6B46C1;">
+                        <a href="register.php">
                             Pas encore de compte ? Inscrivez-vous
                         </a>
                     </div>
