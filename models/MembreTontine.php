@@ -184,5 +184,63 @@ public function ajouterMembre() {
         $stmt->execute(['mid' => $membre_tontine_id]);
         return $stmt->rowCount() > 0;
     }
+    /**
+     * Récupérer le prochain bénéficiaire d'une tontine
+     */
+    public function getProchainBeneficiaire($tontine_id) {
+        // Récupérer le dernier bénéficiaire
+        $query = "SELECT beneficiaire_id FROM seances 
+                WHERE tontine_id = :tid AND beneficiaire_id IS NOT NULL 
+                ORDER BY date_seance DESC LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['tid' => $tontine_id]);
+        $dernier = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($dernier) {
+            // Récupérer l'ordre du dernier bénéficiaire
+            $query = "SELECT ordre_tour FROM membre_tontine WHERE id = :mid";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['mid' => $dernier['beneficiaire_id']]);
+            $ordre_dernier = $stmt->fetch()['ordre_tour'];
+            
+            // Chercher le suivant (ordre > dernier)
+            $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email
+                    FROM membre_tontine mt
+                    JOIN users u ON mt.user_id = u.id
+                    WHERE mt.tontine_id = :tid 
+                        AND mt.est_actif = 1 
+                        AND mt.ordre_tour > :ordre
+                    ORDER BY mt.ordre_tour ASC LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['tid' => $tontine_id, 'ordre' => $ordre_dernier]);
+            $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if(!$suivant) {
+                // Retour au début (cycle complet)
+                $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email
+                        FROM membre_tontine mt
+                        JOIN users u ON mt.user_id = u.id
+                        WHERE mt.tontine_id = :tid 
+                            AND mt.est_actif = 1 
+                        ORDER BY mt.ordre_tour ASC LIMIT 1";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute(['tid' => $tontine_id]);
+                $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            // Aucune séance encore, prendre le premier de l'ordre
+            $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email
+                    FROM membre_tontine mt
+                    JOIN users u ON mt.user_id = u.id
+                    WHERE mt.tontine_id = :tid 
+                        AND mt.est_actif = 1 
+                    ORDER BY mt.ordre_tour ASC LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['tid' => $tontine_id]);
+            $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        return $suivant;
+    }
 }
 ?>

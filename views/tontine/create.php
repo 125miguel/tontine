@@ -59,7 +59,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if($tontine->create()) {
             $_SESSION['tontine_created'] = "Tontine créée avec succès !";
-            header("Location: mes_tontines.php");
+            $_SESSION['new_tontine_id'] = $tontine->id; // Stocker l'ID pour la suite
+            
+            if($mode_beneficiaire == 'manuel') {
+                // Rediriger vers l'ajout des membres d'abord
+                header("Location: ajouter_membre.php?tontine_id=" . $tontine->id . "&mode=manuel");
+            } else {
+                // Mode auto : redirection normale
+                header("Location: mes_tontines.php");
+            }
             exit();
         } else {
             $error = "Erreur lors de la création";

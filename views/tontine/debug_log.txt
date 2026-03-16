@@ -1,0 +1,10 @@
+2026-03-16 15:48:49 - POST reçu: Array
+(
+)
+
+2026-03-16 15:48:50 - INPUT: {"action":"sauvegarder_ordre","ordre":[{"id":"21","ordre":1},{"id":"19","ordre":2},{"id":"18","ordre":3},{"id":"20","ordre":4}]}
+2026-03-16 15:49:03 - POST reçu: Array
+(
+)
+
+2026-03-16 15:49:03 - INPUT: {"action":"sauvegarder_ordre","ordre":[{"id":"21","ordre":1},{"id":"19","ordre":2},{"id":"18","ordre":3},{"id":"20","ordre":4}]}

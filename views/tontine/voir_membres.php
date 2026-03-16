@@ -55,6 +55,23 @@ $query = "SELECT m.*, u.nom, u.prenom, u.email, u.telephone, u.adresse
 $stmt = $db->prepare($query);
 $stmt->execute(['tontine_id' => $tontine_id]);
 $membres = $stmt;
+
+// Récupérer le prochain bénéficiaire (pour tous les modes)
+$prochain_beneficiaire = null;
+if($tontine->mode_beneficiaire == 'manuel' || $tontine->mode_beneficiaire == 'auto') {
+    $prochain_beneficiaire = $membreTontine->getProchainBeneficiaire($tontine_id);
+}
+
+// Récupérer le dernier bénéficiaire pour information
+$query_dernier = "SELECT s.*, u.prenom, u.nom 
+                  FROM seances s
+                  LEFT JOIN membre_tontine mt ON s.beneficiaire_id = mt.id
+                  LEFT JOIN users u ON mt.user_id = u.id
+                  WHERE s.tontine_id = :tid AND s.beneficiaire_id IS NOT NULL
+                  ORDER BY s.date_seance DESC LIMIT 1";
+$stmt_dernier = $db->prepare($query_dernier);
+$stmt_dernier->execute(['tid' => $tontine_id]);
+$dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -268,6 +285,44 @@ $membres = $stmt;
             font-size: 14px;
             color: var(--white);
         }
+        
+        /* Styles pour la carte du prochain bénéficiaire */
+        .beneficiaire-card {
+            border-left: 4px solid var(--primary);
+            transition: transform 0.3s;
+        }
+        
+        .beneficiaire-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.15);
+        }
+        
+        .beneficiaire-avatar {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .mode-badge-auto {
+            background: var(--info);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 50px;
+        }
+        
+        .mode-badge-manuel {
+            background: var(--warning);
+            color: var(--text-dark);
+            padding: 8px 15px;
+            border-radius: 50px;
+        }
     </style>
 </head>
 <body>
@@ -280,7 +335,7 @@ $membres = $stmt;
                 <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($_SESSION['association_nom']) ?>
                 </span>
-                <a class="nav-link" href="ajouter_membre.php?id=<?= $tontine_id ?>">
+                <a class="nav-link" href="ajouter_membre.php?id=<?= $tontine_id ?><?= $tontine->mode_beneficiaire == 'manuel' ? '&mode=manuel' : '' ?>">
                     <i class="bi bi-person-plus"></i> Ajouter
                 </a>
                 <a class="nav-link" href="mes_tontines.php">
@@ -358,9 +413,33 @@ $membres = $stmt;
             <?php unset($_SESSION['reset_password']); ?>
             <?php unset($_SESSION['reset_user']); ?>
         <?php endif; ?>
+        
+        <?php if(isset($_GET['ordre_finalise']) && $_GET['ordre_finalise'] == 1): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> 
+                <strong>Ordre finalisé !</strong> L'ordre des bénéficiaires a été défini et ne peut plus être modifié.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
 
+        <!-- En-tête avec titre et boutons -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-people-fill"></i> Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
+            <div>
+                <h2 class="mb-1"><i class="bi bi-people-fill"></i> Membres de "<?= htmlspecialchars($tontine->nom) ?>"</h2>
+                <div class="mt-2">
+                    <span class="badge bg-<?= $mode_auto ? 'info' : 'warning' ?> p-2 me-2">
+                        <i class="bi bi-<?= $mode_auto ? 'robot' : 'person' ?>"></i>
+                        Mode <?= $mode_auto ? 'Automatique' : 'Manuel' ?>
+                    </span>
+                    <?php if($dernier_beneficiaire): ?>
+                    <span class="text-muted">
+                        <i class="bi bi-clock-history"></i> 
+                        Dernier bénéficiaire : <?= htmlspecialchars($dernier_beneficiaire['prenom'] . ' ' . $dernier_beneficiaire['nom']) ?>
+                        (<?= date('d/m/Y', strtotime($dernier_beneficiaire['date_seance'])) ?>)
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
             <div>
                 <?php if($mode_auto && !$ordre_final_existe): ?>
                     <a href="generer_ordre_final.php?id=<?= $tontine_id ?>" 
@@ -369,16 +448,79 @@ $membres = $stmt;
                         <i class="bi bi-shuffle"></i> Générer l'ordre final
                     </a>
                 <?php endif; ?>
-                <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="btn btn-success">
+                <a href="ajouter_membre.php?id=<?= $tontine_id ?><?= $tontine->mode_beneficiaire == 'manuel' ? '&mode=manuel' : '' ?>" class="btn btn-success">
                     <i class="bi bi-person-plus-fill"></i> Ajouter un membre
                 </a>
+                <?php 
+                // Vérifier si l'ordre a déjà été finalisé
+                $query = "SELECT ordre_finalise FROM tontines WHERE id = :id";
+                $stmt = $db->prepare($query);
+                $stmt->execute(['id' => $tontine_id]);
+                $ordre_finalise = $stmt->fetch()['ordre_finalise'] ?? 0;
+
+                if($tontine->mode_beneficiaire == 'manuel' && $membres->rowCount() > 0 && !$ordre_finalise): ?>
+                <a href="ordonner_membres.php?tontine_id=<?= $tontine_id ?>" class="btn btn-primary ms-2">
+                    <i class="bi bi-sort-numeric-down"></i> Ordonner
+                </a>
+                <?php endif; ?>
             </div>
         </div>
+
+        <!-- Carte du prochain bénéficiaire -->
+        <?php if($prochain_beneficiaire): ?>
+        <div class="card mb-4 beneficiaire-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="beneficiaire-avatar">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="d-flex align-items-center mb-2">
+                            <h4 class="mb-0 me-3">Prochain bénéficiaire</h4>
+                            <span class="badge bg-<?= $mode_auto ? 'info' : 'warning' ?> p-2">
+                                <i class="bi bi-<?= $mode_auto ? 'robot' : 'person' ?>"></i>
+                                Ordre manuel
+                            </span>
+                        </div>
+                        <h3 class="mb-1" style="color: var(--primary);">
+                            <?= htmlspecialchars($prochain_beneficiaire['prenom'] . ' ' . $prochain_beneficiaire['nom']) ?>
+                        </h3>
+                        <div class="row mt-2">
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Ordre n°</small>
+                                <strong><?= $prochain_beneficiaire['ordre_tour'] ?></strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Téléphone</small>
+                                <strong><?= htmlspecialchars($prochain_beneficiaire['telephone'] ?? 'Non renseigné') ?></strong>
+                            </div>
+                            <?php if(!empty($prochain_beneficiaire['email'])): ?>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Email</small>
+                                <strong><?= htmlspecialchars($prochain_beneficiaire['email']) ?></strong>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-center">
+                            <span class="badge bg-success p-3">
+                                <i class="bi bi-calendar-check"></i> 
+                                Prochaine séance
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <?php if($membres->rowCount() == 0): ?>
             <div class="alert alert-info">
                 <i class="bi bi-info-circle-fill me-2"></i> Aucun membre dans cette tontine pour le moment.
-                <a href="ajouter_membre.php?id=<?= $tontine_id ?>" class="alert-link">Ajouter votre premier membre</a>
+                <a href="ajouter_membre.php?id=<?= $tontine_id ?><?= $tontine->mode_beneficiaire == 'manuel' ? '&mode=manuel' : '' ?>" class="alert-link">Ajouter votre premier membre</a>
             </div>
         <?php else: ?>
             <div class="card">
@@ -407,11 +549,19 @@ $membres = $stmt;
                                     $activites = $membreTontine->aDesActivites($m['id']);
                                     $ordre_affiche = $m['ordre_final'] ?? $m['ordre_tour'];
                                     $classe_ordre = $m['ordre_final'] ? 'badge-ordre-final' : 'badge-ordre-temp';
+                                    
+                                    // Mettre en évidence le prochain bénéficiaire
+                                    $est_prochain = ($prochain_beneficiaire && $prochain_beneficiaire['id'] == $m['id']);
                                 ?>
-                                    <tr>
+                                    <tr class="<?= $est_prochain ? 'table-primary' : '' ?>">
                                         <td class="text-center"><?= $compteur++ ?></td>
                                         <td>
                                             <strong><?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?></strong>
+                                            <?php if($est_prochain): ?>
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="bi bi-star-fill"></i> Prochain
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($m['telephone']) ?></td>
                                         <td><?= htmlspecialchars($m['email']) ?></td>
@@ -465,12 +615,35 @@ $membres = $stmt;
                 </div>
             </div>
 
-            <div class="mt-4">
-                <p class="text-muted">
-                    <strong><i class="bi bi-people"></i> Total membres:</strong> <?= $membres->rowCount() ?><br>
-                    <strong><i class="bi bi-cash-stack"></i> Montant cotisation:</strong> <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA<br>
-                    <strong><i class="bi bi-calculator"></i> Total par réunion:</strong> <?= number_format($tontine->montant_cotisation * $membres->rowCount(), 0, ',', ' ') ?> FCFA
-                </p>
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted mb-3">Récapitulatif financier</h6>
+                            <p class="mb-2">
+                                <strong><i class="bi bi-cash-stack"></i> Montant cotisation:</strong> 
+                                <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> FCFA
+                            </p>
+                            <p class="mb-0">
+                                <strong><i class="bi bi-calculator"></i> Total par réunion:</strong> 
+                                <?= number_format($tontine->montant_cotisation * $membres->rowCount(), 0, ',', ' ') ?> FCFA
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted mb-3">Légende des ordres</h6>
+                            <p class="mb-2">
+                                <span class="badge-ordre-final me-2">#1</span> Ordre définitif (mode auto)
+                            </p>
+                            <p class="mb-0">
+                                <span class="badge-ordre-temp me-2">#1</span> Ordre provisoire (mode manuel)
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

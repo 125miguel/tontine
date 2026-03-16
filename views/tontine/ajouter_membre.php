@@ -30,6 +30,7 @@ $database = new Database();
 $db = $database->getConnection();
 
 $tontine_id = $_GET['id'] ?? 0;
+$mode = $_GET['mode'] ?? 'normal'; // Ajout : récupérer le mode (manuel ou normal)
 
 // Vérifier que la tontine appartient bien à cet admin
 $tontine = new Tontine($db);
@@ -88,7 +89,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             
             if($stmt->rowCount() > 0) {
                 $error = "Cet utilisateur est déjà dans votre association. Veuillez utiliser la recherche.";
-                header("Location: ajouter_membre.php?id=" . $tontine_id);
+                header("Location: ajouter_membre.php?id=" . $tontine_id . "&mode=" . $mode);
                 exit();
             }
         } else {
@@ -134,7 +135,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
         $_SESSION['temp_password'] = $temp_password;
         $_SESSION['temp_user'] = $email;
         
-        header("Location: ajouter_membre.php?id=" . $tontine_id . "&created=1");
+        header("Location: ajouter_membre.php?id=" . $tontine_id . "&mode=" . $mode . "&created=1");
         exit();
     }
 }
@@ -186,6 +187,12 @@ if(!empty($search)) {
         $est_dans_association = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
+
+// Compter le nombre de membres déjà dans la tontine
+$queryCount = "SELECT COUNT(*) as total FROM membre_tontine WHERE tontine_id = :tid AND est_actif = 1";
+$stmtCount = $db->prepare($queryCount);
+$stmtCount->execute(['tid' => $tontine_id]);
+$membres_count = $stmtCount->fetch()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -331,6 +338,19 @@ if(!empty($search)) {
         .text-muted {
             color: var(--text-light) !important;
         }
+        
+        .progress-bar {
+            background-color: var(--primary);
+        }
+        
+        .mode-badge {
+            background: var(--warning);
+            color: var(--text-dark);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -343,6 +363,13 @@ if(!empty($search)) {
                 <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($association['nom']) ?>
                 </span>
+                <?php if($mode == 'manuel'): ?>
+                <span class="nav-link">
+                    <span class="mode-badge">
+                        <i class="bi bi-pencil-square"></i> Mode manuel
+                    </span>
+                </span>
+                <?php endif; ?>
                 <a class="nav-link" href="voir_membres.php?id=<?= $tontine_id ?>">
                     <i class="bi bi-people"></i> Voir les membres
                 </a>
@@ -357,6 +384,46 @@ if(!empty($search)) {
         <div class="row">
             <div class="col-md-8 offset-md-2">
                 
+                <!-- Bannière mode manuel (visible uniquement en mode manuel) -->
+                <?php if($mode == 'manuel'): ?>
+                <div class="alert alert-info d-flex align-items-center mb-4">
+                    <div class="me-3">
+                        <i class="bi bi-info-circle-fill" style="font-size: 2rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1"><i class="bi bi-pencil-square"></i> Mode manuel activé</h5>
+                        <p class="mb-0">
+                            Vous êtes en mode bénéficiaire manuel. Après avoir ajouté tous les membres, 
+                            vous devrez définir l'ordre de passage des bénéficiaires.
+                            <strong>Membres actuels : <?= $membres_count ?></strong>
+                        </p>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Barre de progression (mode manuel) -->
+                <?php if($mode == 'manuel' && $membres_count > 0): ?>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="bi bi-people"></i> Membres ajoutés</span>
+                            <span class="fw-bold"><?= $membres_count ?> membre<?= $membres_count > 1 ? 's' : '' ?></span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: <?= min(100, $membres_count * 10) ?>%;" 
+                                 aria-valuenow="<?= $membres_count ?>" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="10"></div>
+                        </div>
+                        <p class="text-muted small mt-2">
+                            <i class="bi bi-info-circle"></i> 
+                            Vous pouvez ajouter autant de membres que vous le souhaitez.
+                        </p>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Message pour afficher le mot de passe temporaire -->
                 <?php if(isset($_GET['created']) && isset($_SESSION['temp_password'])): ?>
                     <div class="temp-password">
@@ -393,6 +460,7 @@ if(!empty($search)) {
                         <!-- Formulaire de recherche -->
                         <form method="GET" class="mb-4">
                             <input type="hidden" name="id" value="<?= $tontine_id ?>">
+                            <input type="hidden" name="mode" value="<?= $mode ?>">
                             <div class="input-group">
                                 <input type="text" name="search" class="form-control" 
                                        placeholder="Rechercher par nom, email ou téléphone..."
@@ -418,7 +486,7 @@ if(!empty($search)) {
                                             <strong>Adresse :</strong> <?= htmlspecialchars($user_trouve['adresse']) ?>
                                         <?php endif; ?>
                                     </p>
-                                    <a href="?id=<?= $tontine_id ?>&add_user=<?= $user_trouve['id'] ?>" 
+                                    <a href="?id=<?= $tontine_id ?>&mode=<?= $mode ?>&add_user=<?= $user_trouve['id'] ?>" 
                                        class="btn btn-success"
                                        onclick="return confirm('Ajouter ce membre à la tontine ?')">
                                         <i class="bi bi-person-plus"></i> Ajouter à cette tontine
@@ -479,6 +547,38 @@ if(!empty($search)) {
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Bouton pour passer à l'ordonnancement (visible uniquement en mode manuel) -->
+                <?php if($mode == 'manuel' && $membres_count > 0): ?>
+                <div class="card mt-4" style="border-left: 4px solid var(--primary);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1"><i class="bi bi-sort-numeric-down"></i> Étape suivante</h5>
+                                <p class="text-muted mb-0">
+                                    Vous avez ajouté <strong><?= $membres_count ?> membre<?= $membres_count > 1 ? 's' : '' ?></strong>.
+                                    Définissez maintenant l'ordre de passage des bénéficiaires.
+                                </p>
+                            </div>
+                            <a href="ordonner_membres.php?tontine_id=<?= $tontine_id ?>" 
+                               class="btn btn-primary btn-lg">
+                                <i class="bi bi-sort-numeric-down"></i> Ordonner les bénéficiaires
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Lien pour passer à l'ordonnancement même si aucun membre (cas particulier) -->
+                <?php if($mode == 'manuel' && $membres_count == 0): ?>
+                <div class="alert alert-warning mt-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Vous n'avez pas encore ajouté de membres. 
+                    Ajoutez au moins un membre avant de passer à l'ordonnancement.
+                </div>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>

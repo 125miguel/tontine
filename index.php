@@ -989,7 +989,7 @@ if(isset($_SESSION['user_id'])) {
                 <div class="col-lg-4" data-aos="flip-left" data-aos-delay="200">
                     <div class="feature-card" style="border: 2px solid var(--primary); transform: scale(1.05); position: relative;">
                         <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 5px 30px; border-radius: 50px; font-weight: 600;">Populaire</div>
-                        <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Prenium</h3>
+                        <h3 style="font-size: 28px; margin-bottom: 20px; margin-top: 20px;">Premium</h3>
                         <div style="font-size: 32px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">5 000 FCFA <small style="font-size: 16px;">/mois</small></div>
                         <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
                             <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 10px;"></i> 5 à 15 membres</li>

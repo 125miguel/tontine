@@ -202,6 +202,69 @@ if($userRole == 'admin') {
     $stmtMembresAmendes->execute(['aid' => $association_active]);
     $membresAvecAmendes = $stmtMembresAmendes->fetchAll(PDO::FETCH_ASSOC);
 }
+
+/**
+ * Fonction pour récupérer le prochain bénéficiaire d'une tontine
+ */
+function getProchainBeneficiaire($db, $tontine_id) {
+    // Récupérer le dernier bénéficiaire
+    $query = "SELECT beneficiaire_id FROM seances 
+              WHERE tontine_id = :tid AND beneficiaire_id IS NOT NULL 
+              ORDER BY date_seance DESC LIMIT 1";
+    $stmt = $db->prepare($query);
+    $stmt->execute(['tid' => $tontine_id]);
+    $dernier = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if($dernier) {
+        // Récupérer l'ordre du dernier bénéficiaire
+        $query = "SELECT ordre_tour, ordre_final FROM membre_tontine WHERE id = :mid";
+        $stmt = $db->prepare($query);
+        $stmt->execute(['mid' => $dernier['beneficiaire_id']]);
+        $ordre_dernier = $stmt->fetch(PDO::FETCH_ASSOC);
+        $ordre_valeur = $ordre_dernier['ordre_final'] ?? $ordre_dernier['ordre_tour'];
+        
+        // Chercher le suivant (ordre > dernier)
+        $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
+                         COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
+                  FROM membre_tontine mt
+                  JOIN users u ON mt.user_id = u.id
+                  WHERE mt.tontine_id = :tid 
+                    AND mt.est_actif = 1 
+                    AND COALESCE(mt.ordre_final, mt.ordre_tour) > :ordre
+                  ORDER BY COALESCE(mt.ordre_final, mt.ordre_tour) ASC LIMIT 1";
+        $stmt = $db->prepare($query);
+        $stmt->execute(['tid' => $tontine_id, 'ordre' => $ordre_valeur]);
+        $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if(!$suivant) {
+            // Retour au début (cycle complet)
+            $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
+                             COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
+                      FROM membre_tontine mt
+                      JOIN users u ON mt.user_id = u.id
+                      WHERE mt.tontine_id = :tid 
+                        AND mt.est_actif = 1 
+                      ORDER BY COALESCE(mt.ordre_final, mt.ordre_tour) ASC LIMIT 1";
+            $stmt = $db->prepare($query);
+            $stmt->execute(['tid' => $tontine_id]);
+            $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+    } else {
+        // Aucune séance encore, prendre le premier de l'ordre
+        $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
+                         COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
+                  FROM membre_tontine mt
+                  JOIN users u ON mt.user_id = u.id
+                  WHERE mt.tontine_id = :tid 
+                    AND mt.est_actif = 1 
+                  ORDER BY COALESCE(mt.ordre_final, mt.ordre_tour) ASC LIMIT 1";
+        $stmt = $db->prepare($query);
+        $stmt->execute(['tid' => $tontine_id]);
+        $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    return $suivant;
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -385,7 +448,7 @@ if($userRole == 'admin') {
             color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
         }
         
@@ -394,7 +457,7 @@ if($userRole == 'admin') {
             color: var(--white);
             padding: 5px 10px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
         }
         
@@ -413,6 +476,11 @@ if($userRole == 'admin') {
             color: var(--white);
         }
         
+        .badge-info {
+            background: var(--info);
+            color: var(--white);
+        }
+        
         .alert-info {
             background: #DBEAFE;
             color: var(--primary);
@@ -422,6 +490,29 @@ if($userRole == 'admin') {
         .alert-info .badge {
             background: var(--primary);
             color: var(--white);
+        }
+        
+        .beneficiaire-card {
+            border-left: 4px solid var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .beneficiaire-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .mode-badge {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 20px;
         }
     </style>
 </head>
@@ -460,60 +551,6 @@ if($userRole == 'admin') {
             <h4 class="alert-heading"><i class="bi bi-hand-thumbs-up"></i> Bonjour, <?= htmlspecialchars($user->prenom) ?> !</h4>
             <p class="mb-0">Bienvenue dans l'espace de <strong><?= htmlspecialchars($association_nom) ?></strong></p>
         </div>
-
-        <?php if($userRole == 'membre' && $tontine_active): ?>
-            <!-- Tontine active en vedette -->
-            <div class="tontine-active">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-1">
-                            Tontine active : <strong><?= htmlspecialchars($tontine_active->nom) ?></strong>
-                            <span class="badge bg-light text-dark ms-2"><?= $tontine_active->type_tontine ?></span>
-                        </h5>
-                        <p class="mb-0">
-                            Montant cotisation : <?= number_format($tontine_active->montant_cotisation, 0, ',', ' ') ?> F
-                        </p>
-                    </div>
-                    <a href="auth/choisir_tontine.php" class="btn btn-outline-light">
-                        <i class="bi bi-arrow-repeat"></i> Changer de tontine
-                    </a>
-                </div>
-            </div>
-
-            <!-- Prochain bénéficiaire (si mode automatique) -->
-            <?php if($tontine_active && $tontine_active->mode_beneficiaire == 'auto'): 
-                // Récupérer le prochain bénéficiaire (ordre_final si disponible, sinon ordre_tour)
-                $query = "SELECT u.prenom, u.nom, 
-                                 COALESCE(mt.ordre_final, mt.ordre_tour) as ordre
-                          FROM membre_tontine mt
-                          JOIN users u ON mt.user_id = u.id
-                          WHERE mt.tontine_id = :tid AND mt.est_actif = 1
-                          ORDER BY COALESCE(mt.ordre_final, mt.ordre_tour) ASC LIMIT 1";
-                $stmt = $db->prepare($query);
-                $stmt->execute(['tid' => $tontine_active->id]);
-                $prochain = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                // Vérifier si l'ordre final existe
-                $query = "SELECT COUNT(*) as nb FROM membre_tontine 
-                          WHERE tontine_id = :tid AND ordre_final IS NOT NULL";
-                $stmt = $db->prepare($query);
-                $stmt->execute(['tid' => $tontine_active->id]);
-                $ordre_final_existe = $stmt->fetch()['nb'] > 0;
-                
-                $classe_ordre = $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp';
-            ?>
-                <div class="alert alert-info mt-3">
-                    <i class="bi bi-trophy"></i>
-                    <strong>Prochain bénéficiaire :</strong> 
-                    <?= htmlspecialchars($prochain['prenom'] . ' ' . $prochain['nom']) ?> 
-                    <span class="<?= $classe_ordre ?>">#<?= $prochain['ordre'] ?></span>
-                    <?php if(!$ordre_final_existe): ?>
-                        <small class="d-block mt-1"> Ordre provisoire en attendant la génération de l'ordre final</small>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-
-        <?php endif; ?>
 
         <?php if($userRole == 'admin'): ?>
 
@@ -656,23 +693,82 @@ if($userRole == 'admin') {
                         <div class="alert alert-info">Vous n'êtes membre d'aucune tontine dans cette association.</div>
                     </div>
                 <?php else: ?>
-                    <?php foreach($mesTontines as $t): ?>
-                        <div class="col-md-6 mb-3">
+                    <?php foreach($mesTontines as $t): 
+                        // Récupérer le prochain bénéficiaire pour cette tontine
+                        $prochain = getProchainBeneficiaire($db, $t['id']);
+                        
+                        // Vérifier si l'ordre final existe
+                        $query = "SELECT COUNT(*) as nb FROM membre_tontine 
+                                  WHERE tontine_id = :tid AND ordre_final IS NOT NULL";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute(['tid' => $t['id']]);
+                        $ordre_final_existe = $stmt->fetch()['nb'] > 0;
+                        
+                        $badge_ordre = $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp';
+                        $mode_label = $t['mode_beneficiaire'] == 'auto' ? 'Automatique' : 'Manuel';
+                        $badge_mode = $t['mode_beneficiaire'] == 'auto' ? 'info' : 'warning';
+                    ?>
+                        <div class="col-md-6 mb-4">
                             <a href="tontine/details_tontine.php?id=<?= $t['id'] ?>" style="text-decoration: none; color: inherit;">
                                 <div class="card h-100">
-                                    <div class="card-header">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0"><?= htmlspecialchars($t['nom']) ?></h5>
+                                        <span class="badge bg-<?= $badge_mode ?> mode-badge">
+                                            <i class="bi bi-<?= $t['mode_beneficiaire'] == 'auto' ? 'robot' : 'person' ?>"></i>
+                                            <?= $mode_label ?>
+                                        </span>
                                     </div>
                                     <div class="card-body">
-                                        <p class="mb-1"><strong> Montant:</strong> <?= number_format($t['montant_cotisation'], 0, ',', ' ') ?> F</p>
-                                        <p class="mb-1"><strong> Réunions:</strong> <?= htmlspecialchars($t['jour_reunion']) ?></p>
-                                        <p class="mb-0"><strong> Prochain tour:</strong> À déterminer</p>
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <p class="mb-1 text-muted">Montant</p>
+                                                <p class="h5"><?= number_format($t['montant_cotisation'], 0, ',', ' ') ?> F</p>
+                                            </div>
+                                            <div class="col-6">
+                                                <p class="mb-1 text-muted">Réunions</p>
+                                                <p class="h5"><?= htmlspecialchars($t['jour_reunion']) ?></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Prochain bénéficiaire -->
+                                        <?php if($prochain): ?>
+                                            <div class="beneficiaire-card p-3 bg-light rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="beneficiaire-avatar me-3">
+                                                        <i class="bi bi-trophy-fill"></i>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted d-block">Prochain bénéficiaire</small>
+                                                        <strong class="h6"><?= htmlspecialchars($prochain['prenom'] . ' ' . $prochain['nom']) ?></strong>
+                                                        <div class="mt-1">
+                                                            <span class="<?= $badge_ordre ?>">#<?= $prochain['ordre_actuel'] ?></span>
+                                                            <?php if(!$ordre_final_existe && $t['mode_beneficiaire'] == 'auto'): ?>
+                                                                <small class="text-muted d-block">Ordre provisoire</small>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="alert alert-warning mb-0 py-2">
+                                                <i class="bi bi-exclamation-triangle"></i> 
+                                                En attente de l'ordre des bénéficiaires
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-0 text-center pb-3">
+                                        <span class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-file-text"></i> Voir détails
+                                        </span>
                                     </div>
                                 </div>
                             </a>
                             <div class="mt-2 text-center">
-                                <a href="etats/etats_membre.php?tontine_id=<?= $t['id'] ?>" class="btn btn-outline-info btn-sm">
+                                <a href="etats/etats_membre.php?tontine_id=<?= $t['id'] ?>" class="btn btn-outline-info btn-sm me-2">
                                     <i class="bi bi-file-text"></i> Mes états
+                                </a>
+                                <a href="tontine/details_tontine.php?id=<?= $t['id'] ?>" class="btn btn-outline-success btn-sm">
+                                    <i class="bi bi-eye"></i> Détails
                                 </a>
                             </div>
                         </div>
