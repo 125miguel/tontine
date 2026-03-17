@@ -242,5 +242,46 @@ public function ajouterMembre() {
         
         return $suivant;
     }
+    /**
+     * Récupérer les statistiques d'un membre
+     */
+    public function getStatsMembre($membre_tontine_id) {
+        $stats = [
+            'total_cotise' => 0,
+            'total_amendes' => 0,
+            'nb_retards' => 0,
+            'nb_presents' => 0
+        ];
+        
+        // Total des cotisations payées
+        $query = "SELECT SUM(montant) as total FROM cotisations 
+                WHERE membre_tontine_id = :mid AND statut = 'paye'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        $stats['total_cotise'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Nombre de retards
+        $query = "SELECT COUNT(*) as total FROM cotisations 
+                WHERE membre_tontine_id = :mid AND statut = 'retard'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        $stats['nb_retards'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Nombre de présences
+        $query = "SELECT COUNT(*) as total FROM cotisations 
+                WHERE membre_tontine_id = :mid AND statut = 'paye'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        $stats['nb_presents'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Total des amendes
+        $query = "SELECT SUM(montant) as total FROM amendes_appliquees 
+                WHERE membre_tontine_id = :mid";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_tontine_id]);
+        $stats['total_amendes'] = $stmt->fetch()['total'] ?? 0;
+        
+        return $stats;
+    }
 }
 ?>

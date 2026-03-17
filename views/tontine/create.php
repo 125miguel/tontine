@@ -42,6 +42,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $jour_reunion = $_POST['jour_reunion'] ?? '';
     $prochaine_reunion = $_POST['prochaine_reunion'] ?? '';
     
+    // NOUVEAU : Récupérer les données du cycle
+    $type_cycle = $_POST['type_cycle'] ?? '';
+    $duree_cycle_perso = $_POST['duree_cycle_perso'] ?? 0;
+    
     if(empty($nom) || empty($montant) || empty($periodicite) || empty($jour_reunion) || empty($prochaine_reunion)) {
         $error = "Veuillez remplir tous les champs obligatoires";
     } else {
@@ -55,17 +59,58 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tontine->jour_reunion = $jour_reunion;
         $tontine->prochaine_reunion = $prochaine_reunion;
         $tontine->admin_id = $_SESSION['user_id'];
-        $tontine->association_id = $association['id'];  // Lier à l'association
+        $tontine->association_id = $association['id'];
+        
+        // NOUVEAU : Initialiser le cycle si sélectionné
+        if(!empty($type_cycle)) {
+            $tontine->type_cycle = $type_cycle;
+            
+            // Calculer la durée en mois selon le type
+            switch($type_cycle) {
+                case 'trimestriel':
+                    $duree = 3;
+                    break;
+                case 'semestriel':
+                    $duree = 6;
+                    break;
+                case 'annuel':
+                    $duree = 12;
+                    break;
+                case 'personnalise':
+                    $duree = intval($duree_cycle_perso);
+                    break;
+                default:
+                    $duree = 0;
+            }
+            
+            if($duree > 0) {
+                $tontine->duree_cycle = $duree;
+                $tontine->date_debut_cycle = date('Y-m-d');
+                
+                // Calculer la date de fin
+                $date_fin = new DateTime();
+                $date_fin->modify('+' . $duree . ' months');
+                $tontine->date_fin_cycle = $date_fin->format('Y-m-d');
+                
+                $tontine->cycle_actuel = 1;
+                $tontine->cycle_termine = 0;
+            }
+        } else {
+            // Pas de cycle
+            $tontine->type_cycle = null;
+            $tontine->duree_cycle = null;
+            $tontine->date_debut_cycle = null;
+            $tontine->date_fin_cycle = null;
+            $tontine->cycle_actuel = 1;
+        }
         
         if($tontine->create()) {
             $_SESSION['tontine_created'] = "Tontine créée avec succès !";
-            $_SESSION['new_tontine_id'] = $tontine->id; // Stocker l'ID pour la suite
+            $_SESSION['new_tontine_id'] = $tontine->id;
             
             if($mode_beneficiaire == 'manuel') {
-                // Rediriger vers l'ajout des membres d'abord
-                header("Location: ajouter_membre.php?tontine_id=" . $tontine->id . "&mode=manuel");
+                header("Location: ajouter_membre.php?id=" . $tontine->id . "&mode=manuel");
             } else {
-                // Mode auto : redirection normale
                 header("Location: mes_tontines.php");
             }
             exit();
@@ -85,8 +130,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
@@ -94,6 +139,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             --border: #E2E8F0;
             --danger: #EF4444;
             --success: #10B981;
+            --info: #3B82F6;
+            --info-bg: #DBEAFE;
         }
         
         body {
@@ -179,6 +226,38 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-weight: 500;
             color: var(--text-dark);
         }
+        
+        .info-box {
+            background: var(--info-bg);
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box i {
+            color: var(--primary);
+            margin-right: 10px;
+        }
+        
+        .cycle-option {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        .cycle-option:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 10px rgba(30, 58, 138, 0.1);
+        }
+        
+        .cycle-option.selected {
+            border-color: var(--primary);
+            background: var(--info-bg);
+        }
     </style>
 </head>
 <body>
@@ -231,7 +310,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Type de tontine</label>
                                     <select name="type_tontine" class="form-select">
-                                        <option value="anniversaire" <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'selected' : '' ?>> Evènement</option>
+                                        <option value="anniversaire" <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'selected' : '' ?>> Anniversaire</option>
                                         <option value="djangui" <?= ($_POST['type_tontine'] ?? '') == 'djangui' ? 'selected' : '' ?>> Djangui</option>
                                         <option value="solidarite" <?= ($_POST['type_tontine'] ?? '') == 'solidarite' ? 'selected' : '' ?>> Solidarité</option>
                                     </select>
@@ -278,7 +357,53 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-100">
+                            <!-- NOUVELLE SECTION : Gestion des cycles -->
+                            <div class="info-box mb-4">
+                                <i class="bi bi-arrow-repeat"></i>
+                                <strong>Gestion des cycles (optionnel)</strong> - Définissez la durée de vie de votre tontine
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Type de cycle</label>
+                                <select name="type_cycle" class="form-select" id="type_cycle">
+                                    <option value="">Aucun cycle (tontine unique)</option>
+                                    <option value="trimestriel" <?= ($_POST['type_cycle'] ?? '') == 'trimestriel' ? 'selected' : '' ?>>Trimestriel (3 mois)</option>
+                                    <option value="semestriel" <?= ($_POST['type_cycle'] ?? '') == 'semestriel' ? 'selected' : '' ?>>Semestriel (6 mois)</option>
+                                    <option value="annuel" <?= ($_POST['type_cycle'] ?? '') == 'annuel' ? 'selected' : '' ?>>Annuel (12 mois)</option>
+                                    <option value="personnalise" <?= ($_POST['type_cycle'] ?? '') == 'personnalise' ? 'selected' : '' ?>>Cycle personnalisé</option>
+                                </select>
+                                <small class="text-muted">
+                                    Le cycle définit la durée pendant laquelle tous les membres pourront bénéficier. 
+                                    À la fin du cycle, vous pourrez renouveler la tontine.
+                                </small>
+                            </div>
+
+                            <div id="duree_personnalisee" style="display: none;" class="mb-4">
+                                <label class="form-label">Durée personnalisée (en mois)</label>
+                                <input type="number" name="duree_cycle_perso" class="form-control" 
+                                       min="1" max="60" value="<?= htmlspecialchars($_POST['duree_cycle_perso'] ?? '3') ?>"
+                                       placeholder="Ex: 4 mois">
+                                <small class="text-muted">Entrez le nombre de mois (maximum 60 mois = 5 ans)</small>
+                            </div>
+
+                            <!-- Aperçu du cycle -->
+                            <div id="apercu_cycle" class="alert alert-info" style="display: none;">
+                                <i class="bi bi-calendar-check"></i>
+                                <span id="message_cycle"></span>
+                            </div>
+
+                            <!-- Informations sur les cycles -->
+                            <div class="cycle-option">
+                                <h6><i class="bi bi-question-circle"></i> Comment fonctionnent les cycles ?</h6>
+                                <ul class="mb-0 small">
+                                    <li>Un cycle permet de planifier la durée de vie de votre tontine</li>
+                                    <li>À la fin du cycle, tous les membres auront bénéficié au moins une fois</li>
+                                    <li>Vous pourrez alors démarrer un nouveau cycle avec les mêmes membres ou en ajouter de nouveaux</li>
+                                    <li>L'ordre des bénéficiaires pourra être redéfini à chaque nouveau cycle</li>
+                                </ul>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 mt-3">
                                 <i class="bi bi-plus-circle"></i> Créer la tontine
                             </button>
                         </form>
@@ -287,6 +412,75 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     </div>
+
+    <script>
+    // Gestion de l'affichage du champ de durée personnalisée
+    document.getElementById('type_cycle').addEventListener('change', function() {
+        const dureePerso = document.getElementById('duree_personnalisee');
+        const apercu = document.getElementById('apercu_cycle');
+        const message = document.getElementById('message_cycle');
+        
+        if(this.value === 'personnalise') {
+            dureePerso.style.display = 'block';
+        } else {
+            dureePerso.style.display = 'none';
+        }
+        
+        // Afficher l'aperçu
+        if(this.value) {
+            let texte = '';
+            const aujourdhui = new Date();
+            const dateFin = new Date();
+            
+            switch(this.value) {
+                case 'trimestriel':
+                    dateFin.setMonth(aujourdhui.getMonth() + 3);
+                    texte = 'Cycle trimestriel : fin prévue le ' + dateFin.toLocaleDateString('fr-FR');
+                    break;
+                case 'semestriel':
+                    dateFin.setMonth(aujourdhui.getMonth() + 6);
+                    texte = 'Cycle semestriel : fin prévue le ' + dateFin.toLocaleDateString('fr-FR');
+                    break;
+                case 'annuel':
+                    dateFin.setMonth(aujourdhui.getMonth() + 12);
+                    texte = 'Cycle annuel : fin prévue le ' + dateFin.toLocaleDateString('fr-FR');
+                    break;
+                case 'personnalise':
+                    const duree = document.querySelector('input[name="duree_cycle_perso"]').value || 3;
+                    dateFin.setMonth(aujourdhui.getMonth() + parseInt(duree));
+                    texte = 'Cycle personnalisé de ' + duree + ' mois : fin prévue le ' + dateFin.toLocaleDateString('fr-FR');
+                    break;
+            }
+            
+            message.textContent = texte;
+            apercu.style.display = 'block';
+        } else {
+            apercu.style.display = 'none';
+        }
+    });
+
+    // Mettre à jour l'aperçu quand la durée personnalisée change
+    document.querySelector('input[name="duree_cycle_perso"]')?.addEventListener('input', function() {
+        const typeCycle = document.getElementById('type_cycle').value;
+        if(typeCycle === 'personnalise') {
+            const apercu = document.getElementById('apercu_cycle');
+            const message = document.getElementById('message_cycle');
+            const aujourdhui = new Date();
+            const dateFin = new Date();
+            const duree = this.value || 3;
+            
+            dateFin.setMonth(aujourdhui.getMonth() + parseInt(duree));
+            message.textContent = 'Cycle personnalisé de ' + duree + ' mois : fin prévue le ' + dateFin.toLocaleDateString('fr-FR');
+            apercu.style.display = 'block';
+        }
+    });
+
+    // Déclencher l'événement au chargement si une valeur est déjà sélectionnée
+    window.addEventListener('load', function() {
+        const event = new Event('change');
+        document.getElementById('type_cycle').dispatchEvent(event);
+    });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

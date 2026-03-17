@@ -72,6 +72,78 @@ $query_dernier = "SELECT s.*, u.prenom, u.nom
 $stmt_dernier = $db->prepare($query_dernier);
 $stmt_dernier->execute(['tid' => $tontine_id]);
 $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
+
+// ========== CALCUL DE LA PROGRESSION PAR SÉANCES ==========
+$cycle_termine = false;
+$progression_cycle = 0;
+$seances_effectuees = 0;
+$seances_prevues = 0;
+$jours_restants = 0;
+
+if($tontine->type_cycle) {
+    $date_debut = new DateTime($tontine->date_debut_cycle);
+    $date_fin = new DateTime($tontine->date_fin_cycle);
+    $aujourdhui = new DateTime();
+    
+    // Calculer le nombre de séances prévues selon la périodicité
+    switch($tontine->periodicite) {
+        case 'hebdomadaire':
+            $interval = new DateInterval('P1W'); // 1 semaine
+            $interval_jours = 7;
+            break;
+        case 'mensuel':
+            $interval = new DateInterval('P1M'); // 1 mois
+            $interval_jours = 30; // Approximation
+            break;
+        case 'journalier':
+            $interval = new DateInterval('P1D'); // 1 jour
+            $interval_jours = 1;
+            break;
+        default:
+            $interval = new DateInterval('P1W'); // Par défaut hebdomadaire
+            $interval_jours = 7;
+    }
+    
+    // Compter le nombre de séances prévues entre début et fin
+    $periode = new DatePeriod($date_debut, $interval, $date_fin);
+    $seances_prevues = iterator_count($periode);
+    
+    // Compter le nombre de séances réellement effectuées
+    $query_seances = "SELECT COUNT(*) as total FROM seances 
+                      WHERE tontine_id = :tid 
+                      AND date_seance BETWEEN :debut AND :fin";
+    $stmt_seances = $db->prepare($query_seances);
+    $stmt_seances->execute([
+        'tid' => $tontine_id,
+        'debut' => $tontine->date_debut_cycle,
+        'fin' => $tontine->date_fin_cycle
+    ]);
+    $seances_effectuees = $stmt_seances->fetch()['total'] ?? 0;
+    
+    // Calculer la progression en pourcentage (basée sur les séances)
+    if($seances_prevues > 0) {
+        $progression_cycle = round(($seances_effectuees / $seances_prevues) * 100);
+    }
+    
+    // Vérifier si le cycle est terminé
+    $cycle_termine = ($aujourdhui > $date_fin) || ($seances_effectuees >= $seances_prevues);
+    
+    // Calculer les jours restants (info temporelle)
+    if($aujourdhui < $date_fin) {
+        $jours_restants = $aujourdhui->diff($date_fin)->days;
+    }
+    
+    // Si le cycle est terminé mais pas marqué comme tel, on le marque
+    if($cycle_termine && !$tontine->cycle_termine) {
+        $tontine->terminerCycle();
+    }
+}
+
+// Récupérer le nombre de cycles déjà effectués
+$query_cycles = "SELECT COUNT(*) as total FROM cycles_tontine WHERE tontine_id = :tid";
+$stmt_cycles = $db->prepare($query_cycles);
+$stmt_cycles->execute(['tid' => $tontine_id]);
+$nb_cycles_effectues = $stmt_cycles->fetch()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -83,17 +155,21 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
             --text-light: #475569;
             --border: #E2E8F0;
             --success: #10B981;
+            --success-bg: #D1FAE5;
             --warning: #F59E0B;
+            --warning-bg: #FEF3C7;
             --danger: #EF4444;
+            --danger-bg: #FEE2E2;
             --info: #3B82F6;
+            --info-bg: #DBEAFE;
         }
         
         body {
@@ -191,6 +267,17 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
             color: var(--white);
         }
         
+        .btn-outline-info {
+            border: 2px solid var(--info);
+            color: var(--info);
+            background: transparent;
+        }
+        
+        .btn-outline-info:hover {
+            background: var(--info);
+            color: var(--white);
+        }
+        
         .badge-actif {
             background: var(--success);
             color: var(--white);
@@ -241,31 +328,24 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
         }
         
         .alert-success {
-            background: #D1FAE5;
+            background: var(--success-bg);
             color: #065F46;
         }
         
         .alert-danger {
-            background: #FEE2E2;
+            background: var(--danger-bg);
             color: #991B1B;
         }
         
         .alert-warning {
-            background: #FEF3C7;
+            background: var(--warning-bg);
             color: #92400E;
         }
         
         .alert-info {
-            background: #DBEAFE;
+            background: var(--info-bg);
             color: var(--primary);
             border: none;
-        }
-        
-        .alert-info .badge {
-            background: var(--primary) !important;
-            color: var(--white) !important;
-            font-size: 18px;
-            padding: 8px 15px;
         }
         
         .table th {
@@ -278,15 +358,6 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
             vertical-align: middle;
         }
         
-        .association-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 50px;
-            font-size: 14px;
-            color: var(--white);
-        }
-        
-        /* Styles pour la carte du prochain bénéficiaire */
         .beneficiaire-card {
             border-left: 4px solid var(--primary);
             transition: transform 0.3s;
@@ -322,6 +393,56 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
             color: var(--text-dark);
             padding: 8px 15px;
             border-radius: 50px;
+        }
+        
+        /* Styles pour les cycles */
+        .cycle-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .cycle-progress {
+            height: 10px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .cycle-progress-bar {
+            height: 100%;
+            background: var(--white);
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        
+        .cycle-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .cycle-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+        }
+        
+        .cycle-terminated {
+            background: var(--warning-bg);
+            color: var(--text-dark);
+            border-left: 4px solid var(--warning);
+        }
+        
+        .stat-highlight {
+            font-weight: 700;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -422,6 +543,67 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
             </div>
         <?php endif; ?>
 
+        <?php if(isset($_GET['error']) && $_GET['error'] == 'cycle_non_termine'): ?>
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> 
+                Le cycle n'est pas encore terminé. Vous ne pouvez pas renouveler maintenant.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Carte d'information du cycle -->
+        <?php if($tontine->type_cycle): ?>
+            <div class="cycle-card mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">
+                            <i class="bi bi-arrow-repeat"></i> Cycle n°<?= $tontine->cycle_actuel ?>
+                            <?php if($nb_cycles_effectues > 0): ?>
+                                <span class="cycle-badge ms-2">
+                                    <i class="bi bi-clock-history"></i> <?= $nb_cycles_effectues ?> cycle(s) précédent(s)
+                                </span>
+                            <?php endif; ?>
+                        </h5>
+                        <p class="mb-0">
+                            Du <?= date('d/m/Y', strtotime($tontine->date_debut_cycle)) ?> 
+                            au <?= date('d/m/Y', strtotime($tontine->date_fin_cycle)) ?>
+                            (<?= ucfirst($tontine->type_cycle) ?>)
+                        </p>
+                    </div>
+                    <?php if($cycle_termine): ?>
+                        <a href="renouveler_cycle.php?id=<?= $tontine_id ?>" class="btn btn-warning">
+                            <i class="bi bi-arrow-repeat"></i> Renouveler le cycle
+                        </a>
+                    <?php endif; ?>
+                </div>
+
+                <?php if(!$cycle_termine): ?>
+                    <div class="cycle-progress">
+                        <div class="cycle-progress-bar" style="width: <?= $progression_cycle ?>%;"></div>
+                    </div>
+                    <div class="cycle-stats">
+                        <span>
+                            <i class="bi bi-people"></i> 
+                            <span class="stat-highlight"><?= $seances_effectuees ?>/<?= $seances_prevues ?></span> séances
+                            (<?= $progression_cycle ?>%)
+                        </span>
+                        <span>
+                            <i class="bi bi-calendar"></i> 
+                            Fin prévue : <?= date('d/m/Y', strtotime($tontine->date_fin_cycle)) ?>
+                            <?php if($jours_restants > 0): ?>
+                                (<span class="stat-highlight"><?= $jours_restants ?></span> jours)
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                <?php else: ?>
+                    <div class="alert cycle-terminated mt-3 mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Cycle terminé ! <strong><?= $seances_effectuees ?></strong> séances effectuées sur <strong><?= $seances_prevues ?></strong> prévues.
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <!-- En-tête avec titre et boutons -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -463,11 +645,17 @@ $dernier_beneficiaire = $stmt_dernier->fetch(PDO::FETCH_ASSOC);
                     <i class="bi bi-sort-numeric-down"></i> Ordonner
                 </a>
                 <?php endif; ?>
+                
+                <?php if($tontine->type_cycle && $cycle_termine): ?>
+                <a href="renouveler_cycle.php?id=<?= $tontine_id ?>" class="btn btn-outline-info ms-2">
+                    <i class="bi bi-arrow-repeat"></i> Renouveler
+                </a>
+                <?php endif; ?>
             </div>
         </div>
 
         <!-- Carte du prochain bénéficiaire -->
-        <?php if($prochain_beneficiaire): ?>
+        <?php if($prochain_beneficiaire && !$cycle_termine): ?>
         <div class="card mb-4 beneficiaire-card">
             <div class="card-body">
                 <div class="row align-items-center">
