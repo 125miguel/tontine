@@ -32,6 +32,9 @@ if(!$tontine->getById($tontine_id) || $tontine->admin_id != $_SESSION['user_id']
     exit();
 }
 
+// Déterminer le type de tontine
+$type_tontine = $tontine->type_tontine;
+
 $membreTontine = new MembreTontine($db);
 $cotisation = new Cotisation($db);
 $amendeAppliquee = new AmendeAppliquee($db);
@@ -56,12 +59,15 @@ $stmt = $db->prepare($query);
 $stmt->execute(['tid' => $tontine_id]);
 $total_collecte = $stmt->fetch()['total'] ?? 0;
 
-// Total distribué aux bénéficiaires
-$query = "SELECT SUM(total_collecte) as total FROM seances 
-          WHERE tontine_id = :tid AND est_cloturee = 1";
-$stmt = $db->prepare($query);
-$stmt->execute(['tid' => $tontine_id]);
-$total_distribue = $stmt->fetch()['total'] ?? 0;
+// Total distribué aux bénéficiaires (UNIQUEMENT pour Djangui et Anniversaire)
+$total_distribue = 0;
+if($type_tontine == 'djangui' || $type_tontine == 'anniversaire') {
+    $query = "SELECT SUM(total_collecte) as total FROM seances 
+              WHERE tontine_id = :tid AND est_cloturee = 1";
+    $stmt = $db->prepare($query);
+    $stmt->execute(['tid' => $tontine_id]);
+    $total_distribue = $stmt->fetch()['total'] ?? 0;
+}
 
 // Total des amendes perçues
 $query = "SELECT SUM(a.montant) as total FROM amendes_appliquees a
@@ -266,6 +272,20 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
             color: var(--text-light);
             font-size: 16px;
         }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-djangui { background: var(--info-bg); color: var(--primary); }
+        .badge-anniversaire { background: var(--warning-bg); color: #92400E; }
+        .badge-solidarite { background: var(--success-bg); color: #065F46; }
+        .badge-pret { background: #E0E7FF; color: #3730A3; }
         
         .tabs {
             display: flex;
@@ -472,6 +492,15 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
         .summary-row:last-child {
             border-bottom: none;
         }
+        
+        .caisse-info {
+            background: var(--info-bg);
+            color: var(--primary);
+            border-left: 4px solid var(--info);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -487,7 +516,17 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
 
     <div class="container">
         <div class="page-header">
-            <h2>États de la tontine</h2>
+            <h2>États de la tontine
+                <?php if($type_tontine == 'djangui'): ?>
+                    <span class="type-badge badge-djangui">Djangui</span>
+                <?php elseif($type_tontine == 'anniversaire'): ?>
+                    <span class="type-badge badge-anniversaire">Anniversaire</span>
+                <?php elseif($type_tontine == 'solidarite'): ?>
+                    <span class="type-badge badge-solidarite">Solidarité</span>
+                <?php elseif($type_tontine == 'pret'): ?>
+                    <span class="type-badge badge-pret">Prêt</span>
+                <?php endif; ?>
+            </h2>
             <p><?= htmlspecialchars($tontine->nom) ?> - <?= ucfirst($tontine->type_tontine) ?></p>
         </div>
 
@@ -495,7 +534,9 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
             <button class="tab active" onclick="showTab('general', this)"> Vue d'ensemble</button>
             <button class="tab" onclick="showTab('membres', this)"> Situation des membres</button>
             <button class="tab" onclick="showTab('seances', this)"> Historique des séances</button>
-            <button class="tab" onclick="showTab('retards', this)">⏱ Suivi des retards</button>
+            <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                <button class="tab" onclick="showTab('retards', this)">⏱ Suivi des retards</button>
+            <?php endif; ?>
         </div>
 
         <!-- ========== TAB 1 : VUE D'ENSEMBLE ========== -->
@@ -514,18 +555,20 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
                             <div class="stat-value positive"><?= number_format($total_collecte, 0, ',', ' ') ?> F</div>
                             <div class="stat-detail">Somme de toutes les cotisations</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total distribué</div>
-                            <div class="stat-value"><?= number_format($total_distribue, 0, ',', ' ') ?> F</div>
-                            <div class="stat-detail">Versé aux bénéficiaires</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Solde en caisse</div>
-                            <div class="stat-value <?= $solde_caisse >= 0 ? 'positive' : 'danger' ?>">
-                                <?= number_format($solde_caisse, 0, ',', ' ') ?> F
+                        <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                            <div class="stat-card">
+                                <div class="stat-label">Total distribué</div>
+                                <div class="stat-value"><?= number_format($total_distribue, 0, ',', ' ') ?> F</div>
+                                <div class="stat-detail">Versé aux bénéficiaires</div>
                             </div>
-                            <div class="stat-detail">Collecté - Distribué</div>
-                        </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Solde en caisse</div>
+                                <div class="stat-value <?= $solde_caisse >= 0 ? 'positive' : 'danger' ?>">
+                                    <?= number_format($solde_caisse, 0, ',', ' ') ?> F
+                                </div>
+                                <div class="stat-detail">Collecté - Distribué</div>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="summary-box">
@@ -646,7 +689,9 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
                                     <th>Montant attendu</th>
                                     <th>Montant reçu</th>
                                     <th>Écart</th>
-                                    <th>Bénéficiaire</th>
+                                    <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                        <th>Bénéficiaire</th>
+                                    <?php endif; ?>
                                     <th>Participation</th>
                                 </tr>
                             </thead>
@@ -664,7 +709,9 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
                                     <td class="<?= $ecart >= 0 ? 'text-success' : 'text-danger' ?>">
                                         <?= ($ecart >= 0 ? '+' : '') . number_format($ecart, 0, ',', ' ') ?> F
                                     </td>
-                                    <td><?= htmlspecialchars($s['beneficiaire_nom'] ?? '-') ?></td>
+                                    <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                        <td><?= htmlspecialchars($s['beneficiaire_nom'] ?? '-') ?></td>
+                                    <?php endif; ?>
                                     <td>
                                         <?= $s['nb_presents'] ?> présent(s) / <?= $s['nb_membres'] ?> membres
                                         <br>
@@ -679,7 +726,8 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- ========== TAB 4 : SUIVI DES RETARDS ========== -->
+        <!-- ========== TAB 4 : SUIVI DES RETARDS (UNIQUEMENT pour Djangui et Anniversaire) ========== -->
+        <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
         <div id="retards" class="tab-content">
             <div class="card">
                 <div class="card-header">Classement des membres par régularité</div>
@@ -735,6 +783,7 @@ $membres_liste = $stmt_membres->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         
         <div class="text-center mt-5">
             <a href="etats_detail_membres.php?tontine_id=<?= $tontine_id ?>" class="btn btn-outline" style="margin-right: 10px;">

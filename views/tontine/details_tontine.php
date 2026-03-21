@@ -55,13 +55,17 @@ $membre = $stmt->fetch(PDO::FETCH_ASSOC);
 $tontine = new Tontine($db);
 $tontine->getById($tontine_id);
 
+// Déterminer le type de tontine
+$type_tontine = $tontine->type_tontine;
+
 // Récupérer les cotisations du membre pour cette tontine
 $cotisation = new Cotisation($db);
 $amendeAppliquee = new AmendeAppliquee($db);
 
 // Récupérer tous les membres de la tontine avec leur ordre
 $query_membres = "SELECT mt.*, u.nom, u.prenom, u.telephone, u.email,
-                         COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
+                         COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel,
+                         mt.date_anniversaire
                   FROM membre_tontine mt
                   JOIN users u ON mt.user_id = u.id
                   WHERE mt.tontine_id = :tid AND mt.est_actif = 1
@@ -136,10 +140,9 @@ $stmt_ordre->execute(['tid' => $tontine_id]);
 $ordre_final_existe = $stmt_ordre->fetch()['nb'] > 0;
 
 /**
- * Fonction pour récupérer le prochain bénéficiaire
+ * Fonction pour récupérer le prochain bénéficiaire (uniquement pour Djangui et Anniversaire)
  */
 function getProchainBeneficiaire($db, $tontine_id, $mode) {
-    // Récupérer le dernier bénéficiaire
     $query = "SELECT beneficiaire_id FROM seances 
               WHERE tontine_id = :tid AND beneficiaire_id IS NOT NULL 
               ORDER BY date_seance DESC LIMIT 1";
@@ -148,14 +151,12 @@ function getProchainBeneficiaire($db, $tontine_id, $mode) {
     $dernier = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if($dernier) {
-        // Récupérer l'ordre du dernier bénéficiaire
         $query = "SELECT ordre_tour, ordre_final FROM membre_tontine WHERE id = :mid";
         $stmt = $db->prepare($query);
         $stmt->execute(['mid' => $dernier['beneficiaire_id']]);
         $ordre_dernier = $stmt->fetch(PDO::FETCH_ASSOC);
         $ordre_valeur = $ordre_dernier['ordre_final'] ?? $ordre_dernier['ordre_tour'];
         
-        // Chercher le suivant (ordre > dernier)
         $query = "SELECT mt.*, u.prenom, u.nom, u.telephone,
                          COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                   FROM membre_tontine mt
@@ -169,7 +170,6 @@ function getProchainBeneficiaire($db, $tontine_id, $mode) {
         $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if(!$suivant) {
-            // Retour au début (cycle complet)
             $query = "SELECT mt.*, u.prenom, u.nom, u.telephone,
                              COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                       FROM membre_tontine mt
@@ -182,7 +182,6 @@ function getProchainBeneficiaire($db, $tontine_id, $mode) {
             $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
         }
     } else {
-        // Aucune séance encore, prendre le premier de l'ordre
         $query = "SELECT mt.*, u.prenom, u.nom, u.telephone,
                          COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                   FROM membre_tontine mt
@@ -198,7 +197,11 @@ function getProchainBeneficiaire($db, $tontine_id, $mode) {
     return $suivant;
 }
 
-$prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mode_beneficiaire);
+// Récupérer le prochain bénéficiaire UNIQUEMENT pour Djangui et Anniversaire
+$prochain_beneficiaire = null;
+if($type_tontine == 'djangui' || $type_tontine == 'anniversaire') {
+    $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mode_beneficiaire);
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -221,6 +224,7 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
             --warning: #F59E0B;
             --danger: #EF4444;
             --info: #3B82F6;
+            --info-bg: #DBEAFE;
         }
         
         body {
@@ -503,6 +507,19 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
             background: var(--text-light);
             color: var(--white);
         }
+        
+        .caisse-info {
+            background: var(--info-bg);
+            color: var(--primary);
+            border-left: 4px solid var(--info);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -535,16 +552,23 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                     <h1 class="mb-2"><?= htmlspecialchars($tontine->nom) ?></h1>
                     <div class="d-flex align-items-center">
                         <span class="badge bg-light text-dark me-3"><?= ucfirst($tontine->type_tontine) ?></span>
-                        <span class="badge <?= $tontine->mode_beneficiaire == 'auto' ? 'badge-mode-auto' : 'badge-mode-manuel' ?> me-3">
-                            <i class="bi bi-<?= $tontine->mode_beneficiaire == 'auto' ? 'robot' : 'person' ?>"></i>
-                            Mode <?= $tontine->mode_beneficiaire == 'auto' ? 'Automatique' : 'Manuel' ?>
-                        </span>
+                        <?php if($type_tontine == 'djangui'): ?>
+                            <span class="badge <?= $tontine->mode_beneficiaire == 'auto' ? 'badge-mode-auto' : 'badge-mode-manuel' ?> me-3">
+                                <i class="bi bi-<?= $tontine->mode_beneficiaire == 'auto' ? 'robot' : 'person' ?>"></i>
+                                Mode <?= $tontine->mode_beneficiaire == 'auto' ? 'Automatique' : 'Manuel' ?>
+                            </span>
+                        <?php endif; ?>
                         <span class="info-badge">
                             <i class="bi bi-people"></i> <?= $total_membres ?> membre<?= $total_membres > 1 ? 's' : '' ?>
                         </span>
                         <span class="info-badge ms-2">
                             <i class="bi bi-cash-stack"></i> <?= number_format($tontine->montant_cotisation, 0, ',', ' ') ?> F
                         </span>
+                        <?php if($type_tontine == 'solidarite' || $type_tontine == 'pret'): ?>
+                            <span class="info-badge ms-2" style="background: var(--info-bg);">
+                                <i class="bi bi-piggy-bank"></i> Solde: <?= number_format($tontine->solde_caisse, 0, ',', ' ') ?> F
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <a href="../dashboard.php" class="btn-retour">
@@ -556,8 +580,8 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
 
     <div class="container mb-5">
 
-        <!-- Prochain bénéficiaire (pour tous les modes) -->
-        <?php if($prochain_beneficiaire): ?>
+        <!-- Prochain bénéficiaire (UNIQUEMENT pour Djangui et Anniversaire) -->
+        <?php if(($type_tontine == 'djangui' || $type_tontine == 'anniversaire') && $prochain_beneficiaire): ?>
         <div class="beneficiaire-card">
             <div class="row align-items-center">
                 <div class="col-auto">
@@ -641,10 +665,15 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>#</th>
+                                <th class="text-center">#</th>
                                 <th>Membre</th>
                                 <th>Contact</th>
-                                <th class="text-center">Ordre</th>
+                                <?php if($type_tontine == 'anniversaire'): ?>
+                                    <th class="text-center">Anniversaire</th>
+                                <?php endif; ?>
+                                <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                    <th class="text-center">Ordre</th>
+                                <?php endif; ?>
                                 <th class="text-center">Statut</th>
                             </tr>
                         </thead>
@@ -654,24 +683,35 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                                 $est_moi = ($m['user_id'] == $userId);
                             ?>
                                 <tr class="<?= $est_prochain ? 'table-primary' : '' ?>">
-                                    <td><?= $index + 1 ?></td>
+                                    <td class="text-center"><?= $index + 1 ?></td>
                                     <td>
                                         <strong><?= htmlspecialchars($m['prenom'] . ' ' . $m['nom']) ?></strong>
                                         <?php if($est_moi): ?>
                                             <span class="badge bg-info ms-1">Moi</span>
                                         <?php endif; ?>
-                                        <?php if($est_prochain): ?>
+                                        <?php if($est_prochain && ($type_tontine == 'djangui' || $type_tontine == 'anniversaire')): ?>
                                             <span class="badge bg-success ms-1">Prochain</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <i class="bi bi-telephone"></i> <?= htmlspecialchars($m['telephone'] ?? '-') ?>
                                     </td>
-                                    <td class="text-center">
-                                        <span class="<?= $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp' ?>">
-                                            #<?= $m['ordre_actuel'] ?>
-                                        </span>
-                                    </td>
+                                    <?php if($type_tontine == 'anniversaire'): ?>
+                                        <td class="text-center">
+                                            <?php if(!empty($m['date_anniversaire'])): ?>
+                                                <?= date('d/m', strtotime($m['date_anniversaire'])) ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">Non renseigné</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
+                                    <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                        <td class="text-center">
+                                            <span class="<?= $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp' ?>">
+                                                #<?= $m['ordre_actuel'] ?>
+                                            </span>
+                                        </td>
+                                    <?php endif; ?>
                                     <td class="text-center">
                                         <?php if($m['est_actif']): ?>
                                             <span class="badge bg-success">Actif</span>
@@ -705,7 +745,9 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Bénéficiaire</th>
+                                        <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                            <th>Bénéficiaire</th>
+                                        <?php endif; ?>
                                         <th class="text-center">Présents</th>
                                         <th class="text-center">Retards</th>
                                     </tr>
@@ -714,13 +756,15 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                                     <?php foreach($seances as $s): ?>
                                         <tr>
                                             <td><?= date('d/m/Y', strtotime($s['date_seance'])) ?></td>
-                                            <td>
-                                                <?php if($s['beneficiaire_id']): ?>
-                                                    <?= htmlspecialchars($s['benef_prenom'] . ' ' . $s['benef_nom']) ?>
-                                                <?php else: ?>
-                                                    <span class="text-muted">Non désigné</span>
-                                                <?php endif; ?>
-                                            </td>
+                                            <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                                <td>
+                                                    <?php if($s['beneficiaire_id']): ?>
+                                                        <?= htmlspecialchars($s['benef_prenom'] . ' ' . $s['benef_nom']) ?>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">Non désigné</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            <?php endif; ?>
                                             <td class="text-center">
                                                 <span class="badge bg-success"><?= $s['nb_presents'] ?></span>
                                             </td>
@@ -757,21 +801,21 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                                 </thead>
                                 <tbody>
                                     <?php foreach($dernieres_cotisations as $c): ?>
-                                    <tr>
-                                        <td><?= date('d/m/Y', strtotime($c['date_seance'])) ?></td>
-                                        <td class="<?= $c['statut'] == 'paye' ? 'amount-positive' : 'amount-negative' ?>">
-                                            <?= number_format($c['montant'], 0, ',', ' ') ?> F
-                                        </td>
-                                        <td>
-                                            <?php if($c['statut'] == 'paye'): ?>
-                                                <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
-                                            <?php elseif($c['statut'] == 'retard'): ?>
-                                                <span class="badge-impaye"><i class="bi bi-exclamation-circle me-1"></i>Retard</span>
-                                            <?php else: ?>
-                                                <span class="badge-attente"><i class="bi bi-hourglass me-1"></i>En attente</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td><?= date('d/m/Y', strtotime($c['date_seance'])) ?></td>
+                                            <td class="<?= $c['statut'] == 'paye' ? 'amount-positive' : 'amount-negative' ?>">
+                                                <?= number_format($c['montant'], 0, ',', ' ') ?> F
+                                            </td>
+                                            <td>
+                                                <?php if($c['statut'] == 'paye'): ?>
+                                                    <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                                                <?php elseif($c['statut'] == 'retard'): ?>
+                                                    <span class="badge-impaye"><i class="bi bi-exclamation-circle me-1"></i>Retard</span>
+                                                <?php else: ?>
+                                                    <span class="badge-attente"><i class="bi bi-hourglass me-1"></i>En attente</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -799,20 +843,20 @@ $prochain_beneficiaire = getProchainBeneficiaire($db, $tontine_id, $tontine->mod
                                 </thead>
                                 <tbody>
                                     <?php foreach($amendes as $a): ?>
-                                    <tr>
-                                        <td><?= date('d/m/Y', strtotime($a['date_application'])) ?></td>
-                                        <td><?= ucfirst(str_replace('_', ' ', $a['type_amende'] ?? 'Amende')) ?></td>
-                                        <td class="<?= $a['est_paye'] ? 'amount-positive' : 'amount-negative' ?>">
-                                            <?= number_format($a['montant'], 0, ',', ' ') ?> F
-                                        </td>
-                                        <td>
-                                            <?php if($a['est_paye']): ?>
-                                                <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
-                                            <?php else: ?>
-                                                <span class="badge-impaye"><i class="bi bi-x-circle me-1"></i>Impayé</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td><?= date('d/m/Y', strtotime($a['date_application'])) ?></td>
+                                            <td><?= ucfirst(str_replace('_', ' ', $a['type_amende'] ?? 'Amende')) ?></td>
+                                            <td class="<?= $a['est_paye'] ? 'amount-positive' : 'amount-negative' ?>">
+                                                <?= number_format($a['montant'], 0, ',', ' ') ?> F
+                                            </td>
+                                            <td>
+                                                <?php if($a['est_paye']): ?>
+                                                    <span class="badge-paye"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                                                <?php else: ?>
+                                                    <span class="badge-impaye"><i class="bi bi-x-circle me-1"></i>Impayé</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>

@@ -46,6 +46,9 @@ if($tontine->admin_id != $_SESSION['user_id']) {
     exit();
 }
 
+// Déterminer le type de tontine
+$type_tontine = $tontine->type_tontine;
+
 $cotisation = new Cotisation($db);
 $membreTontine = new MembreTontine($db);
 $regleAmende = new RegleAmende($db);
@@ -60,10 +63,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
     
     if($membre_id && $type) {
         
-        // Récupérer la règle d'amende correspondante
         $regle = $regleAmende->getByType($tontine->id, $type);
         
-        // Déterminer le montant à appliquer
         if($montant_saisi !== '' && $montant_saisi > 0) {
             $montant = $montant_saisi;
         } elseif($regle && $regle['montant'] > 0) {
@@ -103,8 +104,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
         }
         
         // Pour les tontines solidarité ou prêt, ajouter l'amende au solde
-        if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $montant > 0) {
-            // Récupérer les infos du membre pour le message
+        if(($type_tontine == 'solidarite' || $type_tontine == 'pret') && $montant > 0) {
             $queryMembre = "SELECT u.prenom, u.nom FROM membre_tontine mt
                             JOIN users u ON mt.user_id = u.id
                             WHERE mt.id = :mid";
@@ -118,7 +118,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
                 $montant, 
                 "Amende manuelle (" . $type . ") pour " . $membreInfo['prenom'] . ' ' . $membreInfo['nom']
             );
-            // Recharger la tontine
             $tontine->getById($tontine->id);
         }
         
@@ -131,7 +130,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
 if(isset($_GET['payer'])) {
     $cotisation_id = $_GET['payer'];
     
-    // Récupérer les informations de la cotisation avant mise à jour
     $queryInfo = "SELECT c.*, mt.user_id, u.prenom, u.nom 
                   FROM cotisations c
                   JOIN membre_tontine mt ON c.membre_tontine_id = mt.id
@@ -141,11 +139,9 @@ if(isset($_GET['payer'])) {
     $stmtInfo->execute(['cid' => $cotisation_id]);
     $cotisation_info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
     
-    // Marquer la cotisation comme payée
     $cotisation->updateStatut($cotisation_id, 'paye', date('Y-m-d'));
     
-    // Pour les tontines solidarité ou prêt, ajouter au solde de la caisse
-    if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $cotisation_info) {
+    if(($type_tontine == 'solidarite' || $type_tontine == 'pret') && $cotisation_info) {
         $tontine->updateSoldeCaisse($cotisation_info['montant'], 'ajout');
         $tontine->enregistrerOperation(
             'cotisation', 
@@ -153,7 +149,6 @@ if(isset($_GET['payer'])) {
             "Cotisation de " . $cotisation_info['prenom'] . ' ' . $cotisation_info['nom'],
             $cotisation_id
         );
-        // Recharger la tontine pour avoir le nouveau solde
         $tontine->getById($tontine->id);
     }
     
@@ -165,7 +160,6 @@ if(isset($_GET['payer'])) {
 if(isset($_GET['retard'])) {
     $cotisation_id = $_GET['retard'];
     
-    // Récupérer les informations de la cotisation avant mise à jour
     $queryInfo = "SELECT c.*, mt.user_id, u.prenom, u.nom 
                   FROM cotisations c
                   JOIN membre_tontine mt ON c.membre_tontine_id = mt.id
@@ -175,21 +169,17 @@ if(isset($_GET['retard'])) {
     $stmtInfo->execute(['cid' => $cotisation_id]);
     $cotisation_info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
     
-    // Marquer la cotisation comme retard
     $cotisation->updateStatut($cotisation_id, 'retard', date('Y-m-d'));
     
-    // Récupérer le membre concerné
     $queryMembre = "SELECT membre_tontine_id FROM cotisations WHERE id = :cid";
     $stmtMembre = $db->prepare($queryMembre);
     $stmtMembre->execute(['cid' => $cotisation_id]);
     $membre = $stmtMembre->fetch(PDO::FETCH_ASSOC);
     
     if($membre) {
-        // Récupérer la règle d'amende pour retard de cotisation
         $regle = $regleAmende->getByType($tontine->id, 'retard_cotisation');
         
         if($regle && $regle['montant'] > 0) {
-            // Appliquer l'amende
             $amendeAppliquee->appliquer(
                 $seance_id,
                 $membre['membre_tontine_id'],
@@ -198,15 +188,13 @@ if(isset($_GET['retard'])) {
                 date('Y-m-d')
             );
             
-            // Pour les tontines solidarité ou prêt, ajouter l'amende au solde
-            if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $cotisation_info) {
+            if(($type_tontine == 'solidarite' || $type_tontine == 'pret') && $cotisation_info) {
                 $tontine->updateSoldeCaisse($regle['montant'], 'ajout');
                 $tontine->enregistrerOperation(
                     'amende', 
                     $regle['montant'], 
                     "Amende pour retard de " . $cotisation_info['prenom'] . ' ' . $cotisation_info['nom']
                 );
-                // Recharger la tontine
                 $tontine->getById($tontine->id);
             }
         }
@@ -394,6 +382,10 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
             padding: 15px;
             margin-bottom: 20px;
         }
+        
+        .table td {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -403,14 +395,19 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
-                <?php if($tontine->type_tontine == 'solidarite'): ?>
+                <?php if($type_tontine == 'solidarite'): ?>
                     <span class="nav-link">
                         <span class="badge bg-info">Solidarité</span>
                     </span>
                 <?php endif; ?>
-                <?php if($tontine->type_tontine == 'pret'): ?>
+                <?php if($type_tontine == 'pret'): ?>
                     <span class="nav-link">
                         <span class="badge bg-info">Prêt</span>
+                    </span>
+                <?php endif; ?>
+                <?php if($type_tontine == 'anniversaire'): ?>
+                    <span class="nav-link">
+                        <span class="badge bg-warning">Anniversaire</span>
                     </span>
                 <?php endif; ?>
                 <a class="nav-link" href="mes_tontines.php">
@@ -434,13 +431,13 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 <?php endif; ?>
                 
                 <!-- Affichage du solde pour solidarité ou prêt -->
-                <?php if($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret'): ?>
+                <?php if($type_tontine == 'solidarite' || $type_tontine == 'pret'): ?>
                     <div class="solde-info">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="bi bi-piggy-bank" style="font-size: 24px;"></i>
                                 <strong>
-                                    <?php if($tontine->type_tontine == 'solidarite'): ?>
+                                    <?php if($type_tontine == 'solidarite'): ?>
                                         Caisse de solidarité
                                     <?php else: ?>
                                         Caisse des prêts
@@ -490,7 +487,9 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Ordre</th>
+                                        <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                            <th class="text-center">Ordre</th>
+                                        <?php endif; ?>
                                         <th>Membre</th>
                                         <th>Montant</th>
                                         <th>Statut</th>
@@ -500,7 +499,9 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                 <tbody>
                                     <?php while($c = $cotisations->fetch(PDO::FETCH_ASSOC)): ?>
                                         <tr>
-                                            <td class="text-center"><?= $c['ordre_tour'] ?></td>
+                                            <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                                <td class="text-center"><?= $c['ordre_tour'] ?></td>
+                                            <?php endif; ?>
                                             <td>
                                                 <strong><?= htmlspecialchars($c['prenom'] . ' ' . $c['nom']) ?></strong>
                                             </td>
@@ -548,7 +549,6 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                         <select name="membre_id" class="form-control" required>
                                             <option value="">Sélectionner un membre</option>
                                             <?php 
-                                            // Récupérer tous les membres de la séance
                                             $cotisations->execute();
                                             while($c = $cotisations->fetch(PDO::FETCH_ASSOC)): 
                                             ?>
@@ -556,7 +556,6 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                                     <?= htmlspecialchars($c['prenom'] . ' ' . $c['nom']) ?>
                                                 </option>
                                             <?php endwhile; 
-                                            // Remettre le curseur au début
                                             $cotisations->execute();
                                             ?>
                                         </select>
@@ -664,10 +663,12 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
 
                         <!-- Boutons d'action -->
                         <div class="text-center mt-4">
-                            <a href="designer_beneficiaire.php?seance_id=<?= $seance_id ?>" 
-                               class="btn btn-warning">
-                                <i class="bi bi-trophy"></i> Désigner le bénéficiaire (même avec des impayés)
-                            </a>
+                            <?php if($type_tontine == 'djangui' || $type_tontine == 'anniversaire'): ?>
+                                <a href="designer_beneficiaire.php?seance_id=<?= $seance_id ?>" 
+                                   class="btn btn-warning">
+                                    <i class="bi bi-trophy"></i> Désigner le bénéficiaire
+                                </a>
+                            <?php endif; ?>
                             <a href="rapport_seance.php?seance_id=<?= $seance_id ?>" class="btn btn-info">
                                 <i class="bi bi-file-text"></i> Rapport
                             </a>
@@ -683,7 +684,6 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
     </div>
 
     <script>
-    // Tableau des montants par défaut (récupérés depuis PHP)
     const montantsDefaut = {
         <?php
         $types = ['absence', 'retard_reunion', 'telephone', 'dispute', 'nourriture', 'autre'];
@@ -702,7 +702,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
         
         if(type && montantsDefaut[type] > 0) {
             montantInput.placeholder = "Défaut: " + montantsDefaut[type] + " F";
-            montantInput.value = ''; // Vide pour utiliser la valeur par défaut
+            montantInput.value = '';
         } else {
             montantInput.placeholder = "Montant";
         }

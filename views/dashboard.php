@@ -207,7 +207,6 @@ if($userRole == 'admin') {
  * Fonction pour récupérer le prochain bénéficiaire d'une tontine
  */
 function getProchainBeneficiaire($db, $tontine_id) {
-    // Récupérer le dernier bénéficiaire
     $query = "SELECT beneficiaire_id FROM seances 
               WHERE tontine_id = :tid AND beneficiaire_id IS NOT NULL 
               ORDER BY date_seance DESC LIMIT 1";
@@ -216,14 +215,12 @@ function getProchainBeneficiaire($db, $tontine_id) {
     $dernier = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if($dernier) {
-        // Récupérer l'ordre du dernier bénéficiaire
         $query = "SELECT ordre_tour, ordre_final FROM membre_tontine WHERE id = :mid";
         $stmt = $db->prepare($query);
         $stmt->execute(['mid' => $dernier['beneficiaire_id']]);
         $ordre_dernier = $stmt->fetch(PDO::FETCH_ASSOC);
         $ordre_valeur = $ordre_dernier['ordre_final'] ?? $ordre_dernier['ordre_tour'];
         
-        // Chercher le suivant (ordre > dernier)
         $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
                          COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                   FROM membre_tontine mt
@@ -237,7 +234,6 @@ function getProchainBeneficiaire($db, $tontine_id) {
         $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if(!$suivant) {
-            // Retour au début (cycle complet)
             $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
                              COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                       FROM membre_tontine mt
@@ -250,7 +246,6 @@ function getProchainBeneficiaire($db, $tontine_id) {
             $suivant = $stmt->fetch(PDO::FETCH_ASSOC);
         }
     } else {
-        // Aucune séance encore, prendre le premier de l'ordre
         $query = "SELECT mt.*, u.prenom, u.nom, u.telephone, u.email,
                          COALESCE(mt.ordre_final, mt.ordre_tour) as ordre_actuel
                   FROM membre_tontine mt
@@ -276,8 +271,8 @@ function getProchainBeneficiaire($db, $tontine_id) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
@@ -514,6 +509,26 @@ function getProchainBeneficiaire($db, $tontine_id) {
             padding: 5px 10px;
             border-radius: 20px;
         }
+        
+        .type-badge {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+        
+        .badge-anniversaire { background: #FEF3C7; color: #92400E; }
+        .badge-solidarite { background: #DBEAFE; color: #1E3A8A; }
+        .badge-pret { background: #E0E7FF; color: #3730A3; }
+        
+        .caisse-info {
+            background: var(--info-bg);
+            color: var(--primary);
+            border-left: 4px solid var(--info);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -694,8 +709,11 @@ function getProchainBeneficiaire($db, $tontine_id) {
                     </div>
                 <?php else: ?>
                     <?php foreach($mesTontines as $t): 
-                        // Récupérer le prochain bénéficiaire pour cette tontine
-                        $prochain = getProchainBeneficiaire($db, $t['id']);
+                        // Récupérer le prochain bénéficiaire UNIQUEMENT pour Djangui et Anniversaire
+                        $prochain = null;
+                        if($t['type_tontine'] == 'djangui' || $t['type_tontine'] == 'anniversaire') {
+                            $prochain = getProchainBeneficiaire($db, $t['id']);
+                        }
                         
                         // Vérifier si l'ordre final existe
                         $query = "SELECT COUNT(*) as nb FROM membre_tontine 
@@ -705,17 +723,32 @@ function getProchainBeneficiaire($db, $tontine_id) {
                         $ordre_final_existe = $stmt->fetch()['nb'] > 0;
                         
                         $badge_ordre = $ordre_final_existe ? 'badge-ordre-final' : 'badge-ordre-temp';
-                        $mode_label = $t['mode_beneficiaire'] == 'auto' ? 'Automatique' : 'Manuel';
-                        $badge_mode = $t['mode_beneficiaire'] == 'auto' ? 'info' : 'warning';
+                        
+                        // Badge du type de tontine
+                        $type_badge_class = '';
+                        $type_icon = '';
+                        if($t['type_tontine'] == 'djangui') {
+                            $type_badge_class = 'badge-info';
+                            $type_icon = 'bi-bank2';
+                        } elseif($t['type_tontine'] == 'anniversaire') {
+                            $type_badge_class = 'badge-warning';
+                            $type_icon = 'bi-gift';
+                        } elseif($t['type_tontine'] == 'solidarite') {
+                            $type_badge_class = 'badge-info';
+                            $type_icon = 'bi-shield-check';
+                        } elseif($t['type_tontine'] == 'pret') {
+                            $type_badge_class = 'badge-info';
+                            $type_icon = 'bi-cash-stack';
+                        }
                     ?>
                         <div class="col-md-6 mb-4">
                             <a href="tontine/details_tontine.php?id=<?= $t['id'] ?>" style="text-decoration: none; color: inherit;">
                                 <div class="card h-100">
                                     <div class="card-header d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0"><?= htmlspecialchars($t['nom']) ?></h5>
-                                        <span class="badge bg-<?= $badge_mode ?> mode-badge">
-                                            <i class="bi bi-<?= $t['mode_beneficiaire'] == 'auto' ? 'robot' : 'person' ?>"></i>
-                                            <?= $mode_label ?>
+                                        <span class="badge <?= $type_badge_class ?> mode-badge">
+                                            <i class="bi <?= $type_icon ?>"></i>
+                                            <?= ucfirst($t['type_tontine']) ?>
                                         </span>
                                     </div>
                                     <div class="card-body">
@@ -730,29 +763,43 @@ function getProchainBeneficiaire($db, $tontine_id) {
                                             </div>
                                         </div>
                                         
-                                        <!-- Prochain bénéficiaire -->
-                                        <?php if($prochain): ?>
-                                            <div class="beneficiaire-card p-3 bg-light rounded">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="beneficiaire-avatar me-3">
-                                                        <i class="bi bi-trophy-fill"></i>
-                                                    </div>
-                                                    <div>
-                                                        <small class="text-muted d-block">Prochain bénéficiaire</small>
-                                                        <strong class="h6"><?= htmlspecialchars($prochain['prenom'] . ' ' . $prochain['nom']) ?></strong>
-                                                        <div class="mt-1">
-                                                            <span class="<?= $badge_ordre ?>">#<?= $prochain['ordre_actuel'] ?></span>
-                                                            <?php if(!$ordre_final_existe && $t['mode_beneficiaire'] == 'auto'): ?>
-                                                                <small class="text-muted d-block">Ordre provisoire</small>
-                                                            <?php endif; ?>
+                                        <!-- Affichage spécifique selon le type -->
+                                        <?php if($t['type_tontine'] == 'djangui' || $t['type_tontine'] == 'anniversaire'): ?>
+                                            <?php if($prochain): ?>
+                                                <div class="beneficiaire-card p-3 bg-light rounded">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="beneficiaire-avatar me-3">
+                                                            <i class="bi bi-trophy-fill"></i>
+                                                        </div>
+                                                        <div>
+                                                            <small class="text-muted d-block">Prochain bénéficiaire</small>
+                                                            <strong class="h6"><?= htmlspecialchars($prochain['prenom'] . ' ' . $prochain['nom']) ?></strong>
+                                                            <div class="mt-1">
+                                                                <span class="<?= $badge_ordre ?>">#<?= $prochain['ordre_actuel'] ?></span>
+                                                                <?php if(!$ordre_final_existe && $t['mode_beneficiaire'] == 'auto'): ?>
+                                                                    <small class="text-muted d-block">Ordre provisoire</small>
+                                                                <?php endif; ?>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            <?php else: ?>
+                                                <div class="alert alert-warning mb-0 py-2">
+                                                    <i class="bi bi-exclamation-triangle"></i> 
+                                                    En attente de l'ordre des bénéficiaires
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php elseif($t['type_tontine'] == 'solidarite'): ?>
+                                            <div class="caisse-info">
+                                                <i class="bi bi-piggy-bank"></i>
+                                                <strong>Solde de solidarité :</strong>
+                                                <span class="float-end"><?= number_format($t['solde_caisse'] ?? 0, 0, ',', ' ') ?> F</span>
                                             </div>
-                                        <?php else: ?>
-                                            <div class="alert alert-warning mb-0 py-2">
-                                                <i class="bi bi-exclamation-triangle"></i> 
-                                                En attente de l'ordre des bénéficiaires
+                                        <?php elseif($t['type_tontine'] == 'pret'): ?>
+                                            <div class="caisse-info">
+                                                <i class="bi bi-piggy-bank"></i>
+                                                <strong>Solde des prêts :</strong>
+                                                <span class="float-end"><?= number_format($t['solde_caisse'] ?? 0, 0, ',', ' ') ?> F</span>
                                             </div>
                                         <?php endif; ?>
                                     </div>
