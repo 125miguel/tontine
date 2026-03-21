@@ -283,5 +283,32 @@ public function ajouterMembre() {
         
         return $stats;
     }
+
+    /**
+    * Vérifier si un membre a une demande d'aide en cours
+    */
+    public function aDemandeEnCours($membre_id) {
+        $query = "SELECT id FROM demandes_aide 
+                WHERE membre_id = :mid AND statut IN ('en_attente', 'approuve')
+                LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['mid' => $membre_id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+    * Récupérer toutes les demandes d'aide d'un membre
+    */
+    public function getDemandesAide($membre_id, $limit = 10) {
+        $query = "SELECT * FROM demandes_aide 
+                WHERE membre_id = :mid 
+                ORDER BY date_demande DESC 
+                LIMIT :limit";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':mid', $membre_id);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>

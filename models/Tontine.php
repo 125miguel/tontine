@@ -20,14 +20,18 @@ class Tontine {
     public $type_tontine;
     public $mode_beneficiaire;
     
-    // NOUVELLES propriétés pour les cycles
-    public $type_cycle;        // trimestriel, semestriel, annuel, personnalise
-    public $duree_cycle;       // en mois
-    public $date_debut_cycle;   // date de début du cycle actuel
-    public $date_fin_cycle;     // date de fin du cycle actuel
-    public $cycle_actuel;       // numéro du cycle (1, 2, 3...)
-    public $cycle_termine;      // 0 ou 1
-    public $parent_tontine_id;  // pour lier les cycles entre eux
+    // Propriétés pour les cycles
+    public $type_cycle;
+    public $duree_cycle;
+    public $date_debut_cycle;
+    public $date_fin_cycle;
+    public $cycle_actuel;
+    public $cycle_termine;
+    public $parent_tontine_id;
+    
+    // Propriétés pour la gestion financière
+    public $type_cotisation;
+    public $solde_caisse;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -38,10 +42,10 @@ class Tontine {
      */
     public function create() {
         $query = "INSERT INTO " . $this->table . "
-                  (nom, description, type_tontine, mode_beneficiaire, montant_cotisation, periodicite,
+                  (nom, description, type_tontine, mode_beneficiaire, montant_cotisation, type_cotisation, solde_caisse, periodicite,
                    jour_reunion, prochaine_reunion, admin_id, association_id,
                    type_cycle, duree_cycle, date_debut_cycle, date_fin_cycle, cycle_actuel)
-                  VALUES (:nom, :description, :type_tontine, :mode_beneficiaire, :montant_cotisation, :periodicite,
+                  VALUES (:nom, :description, :type_tontine, :mode_beneficiaire, :montant_cotisation, :type_cotisation, :solde_caisse, :periodicite,
                           :jour_reunion, :prochaine_reunion, :admin_id, :association_id,
                           :type_cycle, :duree_cycle, :date_debut_cycle, :date_fin_cycle, :cycle_actuel)";
         
@@ -52,13 +56,15 @@ class Tontine {
         $stmt->bindParam(":type_tontine", $this->type_tontine);
         $stmt->bindParam(":mode_beneficiaire", $this->mode_beneficiaire);
         $stmt->bindParam(":montant_cotisation", $this->montant_cotisation);
+        $stmt->bindParam(":type_cotisation", $this->type_cotisation);
+        $stmt->bindParam(":solde_caisse", $this->solde_caisse);
         $stmt->bindParam(":periodicite", $this->periodicite);
         $stmt->bindParam(":jour_reunion", $this->jour_reunion);
         $stmt->bindParam(":prochaine_reunion", $this->prochaine_reunion);
         $stmt->bindParam(":admin_id", $this->admin_id);
         $stmt->bindParam(":association_id", $this->association_id);
         
-        // NOUVEAUX paramètres
+        // Paramètres des cycles
         $stmt->bindParam(":type_cycle", $this->type_cycle);
         $stmt->bindParam(":duree_cycle", $this->duree_cycle);
         $stmt->bindParam(":date_debut_cycle", $this->date_debut_cycle);
@@ -105,6 +111,8 @@ class Tontine {
             $this->type_tontine = $row['type_tontine'];
             $this->mode_beneficiaire = $row['mode_beneficiaire'];
             $this->montant_cotisation = $row['montant_cotisation'];
+            $this->type_cotisation = $row['type_cotisation'] ?? 'fixe';
+            $this->solde_caisse = $row['solde_caisse'] ?? 0;
             $this->periodicite = $row['periodicite'];
             $this->jour_reunion = $row['jour_reunion'];
             $this->prochaine_reunion = $row['prochaine_reunion'];
@@ -112,7 +120,7 @@ class Tontine {
             $this->association_id = $row['association_id'];
             $this->created_at = $row['created_at'];
             
-            // NOUVELLES propriétés
+            // Propriétés des cycles
             $this->type_cycle = $row['type_cycle'] ?? null;
             $this->duree_cycle = $row['duree_cycle'] ?? null;
             $this->date_debut_cycle = $row['date_debut_cycle'] ?? null;
@@ -136,6 +144,8 @@ class Tontine {
                     nom = :nom,
                     description = :description,
                     montant_cotisation = :montant_cotisation,
+                    type_cotisation = :type_cotisation,
+                    solde_caisse = :solde_caisse,
                     periodicite = :periodicite,
                     jour_reunion = :jour_reunion,
                     prochaine_reunion = :prochaine_reunion,
@@ -153,19 +163,22 @@ class Tontine {
         $this->nom = htmlspecialchars(strip_tags($this->nom));
         $this->description = htmlspecialchars(strip_tags($this->description));
         $this->montant_cotisation = htmlspecialchars(strip_tags($this->montant_cotisation));
+        $this->type_cotisation = htmlspecialchars(strip_tags($this->type_cotisation));
         $this->periodicite = htmlspecialchars(strip_tags($this->periodicite));
         $this->jour_reunion = htmlspecialchars(strip_tags($this->jour_reunion));
         
         $stmt->bindParam(":nom", $this->nom);
         $stmt->bindParam(":description", $this->description);
         $stmt->bindParam(":montant_cotisation", $this->montant_cotisation);
+        $stmt->bindParam(":type_cotisation", $this->type_cotisation);
+        $stmt->bindParam(":solde_caisse", $this->solde_caisse);
         $stmt->bindParam(":periodicite", $this->periodicite);
         $stmt->bindParam(":jour_reunion", $this->jour_reunion);
         $stmt->bindParam(":prochaine_reunion", $this->prochaine_reunion);
         $stmt->bindParam(":id", $this->id);
         $stmt->bindParam(":admin_id", $this->admin_id);
         
-        // NOUVEAUX paramètres
+        // Paramètres des cycles
         $stmt->bindParam(":type_cycle", $this->type_cycle);
         $stmt->bindParam(":duree_cycle", $this->duree_cycle);
         $stmt->bindParam(":date_debut_cycle", $this->date_debut_cycle);
@@ -198,7 +211,7 @@ class Tontine {
     }
 
     /**
-     * Calculer la prochaine date de réunion en fonction de la périodicité
+     * Calculer la prochaine date de réunion
      */
     public function calculerProchaineReunion($date_reference = null) {
         if(!$date_reference) {
@@ -256,18 +269,14 @@ class Tontine {
         return $stmt->rowCount() > 0;
     }
 
-    // ========== NOUVELLES MÉTHODES POUR LES CYCLES ==========
+    // ========== MÉTHODES POUR LES CYCLES ==========
 
-    /**
-     * Initialiser un nouveau cycle
-     */
     public function initCycle($type_cycle, $duree_personnalisee = null) {
         $this->type_cycle = $type_cycle;
         $this->date_debut_cycle = date('Y-m-d');
         $this->cycle_actuel = $this->cycle_actuel ?? 1;
         $this->cycle_termine = 0;
         
-        // Calculer la durée en mois
         switch($type_cycle) {
             case 'trimestriel':
                 $this->duree_cycle = 3;
@@ -285,7 +294,6 @@ class Tontine {
                 $this->duree_cycle = null;
         }
         
-        // Calculer la date de fin
         if($this->duree_cycle) {
             $date = new DateTime($this->date_debut_cycle);
             $date->modify('+' . $this->duree_cycle . ' months');
@@ -295,9 +303,6 @@ class Tontine {
         return $this->update();
     }
 
-    /**
-     * Vérifier si le cycle actuel est terminé
-     */
     public function estCycleTermine() {
         if(!$this->date_fin_cycle) {
             return false;
@@ -309,17 +314,11 @@ class Tontine {
         return $aujourdhui > $date_fin;
     }
 
-    /**
-     * Marquer le cycle comme terminé
-     */
     public function terminerCycle() {
         $this->cycle_termine = 1;
         return $this->update();
     }
 
-    /**
-     * Calculer la progression du cycle en pourcentage
-     */
     public function getProgressionCycle() {
         if(!$this->date_debut_cycle || !$this->date_fin_cycle) {
             return 0;
@@ -329,7 +328,6 @@ class Tontine {
         $fin = new DateTime($this->date_fin_cycle);
         $aujourdhui = new DateTime();
         
-        // Si la date de fin est dépassée
         if($aujourdhui > $fin) {
             return 100;
         }
@@ -342,9 +340,6 @@ class Tontine {
         return round(($jours_ecoules / $total_jours) * 100);
     }
 
-    /**
-     * Obtenir le nombre de jours restants dans le cycle
-     */
     public function getJoursRestants() {
         if(!$this->date_fin_cycle) {
             return null;
@@ -360,11 +355,7 @@ class Tontine {
         return $aujourdhui->diff($date_fin)->days;
     }
 
-    /**
-     * Démarrer un nouveau cycle (après la fin d'un cycle)
-     */
     public function demarrerNouveauCycle() {
-        // Sauvegarder l'ancien cycle dans l'historique
         $query = "INSERT INTO cycles_tontine 
                   (tontine_id, numero_cycle, date_debut, date_fin, nb_membres, ordre_finalise)
                   SELECT :tontine_id, cycle_actuel, date_debut_cycle, date_fin_cycle, 
@@ -379,11 +370,9 @@ class Tontine {
             'tontine_id3' => $this->id
         ]);
         
-        // Incrémenter le numéro de cycle
         $this->cycle_actuel++;
-        
-        // Réinitialiser les dates du nouveau cycle
         $this->date_debut_cycle = date('Y-m-d');
+        
         if($this->duree_cycle) {
             $date = new DateTime($this->date_debut_cycle);
             $date->modify('+' . $this->duree_cycle . ' months');
@@ -394,5 +383,227 @@ class Tontine {
         
         return $this->update();
     }
+
+    // ========== MÉTHODES POUR LA GESTION FINANCIÈRE ==========
+
+    public function updateSoldeCaisse($montant, $operation = 'ajout') {
+        if($operation == 'ajout') {
+            $this->solde_caisse += $montant;
+        } else {
+            $this->solde_caisse -= $montant;
+        }
+        
+        $query = "UPDATE " . $this->table . " SET solde_caisse = :solde WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            'solde' => $this->solde_caisse,
+            'id' => $this->id
+        ]);
+    }
+
+    public function enregistrerOperation($type, $montant, $description, $lien_id = null) {
+        $query = "INSERT INTO operations_caisse 
+                  (tontine_id, type_operation, montant, description, lien_id)
+                  VALUES (:tontine_id, :type, :montant, :description, :lien_id)";
+        
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            'tontine_id' => $this->id,
+            'type' => $type,
+            'montant' => $montant,
+            'description' => $description,
+            'lien_id' => $lien_id
+        ]);
+    }
+
+    public function getSoldeCaisse() {
+        return $this->solde_caisse;
+    }
+
+    public function estCotisationLibre() {
+        return ($this->type_tontine == 'anniversaire' && $this->type_cotisation == 'libre');
+    }
+
+    public function estTypeSolidaire() {
+        return ($this->type_tontine == 'solidarite');
+    }
+
+    public function estTypePret() {
+        return ($this->type_tontine == 'pret');
+    }
+
+    // ========== MÉTHODES POUR LES PRÊTS ==========
+
+    /**
+     * Créer un nouveau prêt
+     */
+    public function creerPret($membre_id, $montant, $taux_interet, $duree_mois) {
+        // Vérifier si le solde est suffisant
+        if($this->solde_caisse < $montant) {
+            return ['success' => false, 'message' => 'Solde insuffisant'];
+        }
+        
+        // Calculer le montant total à rembourser avec intérêts
+        $interets = $montant * ($taux_interet / 100);
+        $montant_total = $montant + $interets;
+        
+        // Date d'octroi et échéance
+        $date_octroi = date('Y-m-d');
+        $date_echeance = date('Y-m-d', strtotime("+$duree_mois months"));
+        
+        // Créer le prêt
+        $query = "INSERT INTO prets (tontine_id, membre_id, montant_pret, taux_interet, montant_total_du, duree_remboursement, date_octroi, date_echeance)
+                  VALUES (:tid, :mid, :montant, :taux, :total, :duree, :date_octroi, :date_echeance)";
+        $stmt = $this->conn->prepare($query);
+        $result = $stmt->execute([
+            'tid' => $this->id,
+            'mid' => $membre_id,
+            'montant' => $montant,
+            'taux' => $taux_interet,
+            'total' => $montant_total,
+            'duree' => $duree_mois,
+            'date_octroi' => $date_octroi,
+            'date_echeance' => $date_echeance
+        ]);
+        
+        if(!$result) {
+            return ['success' => false, 'message' => 'Erreur lors de la création du prêt'];
+        }
+        
+        $pret_id = $this->conn->lastInsertId();
+        
+        // Créer les échéances mensuelles
+        $montant_echeance = round($montant_total / $duree_mois);
+        for($i = 1; $i <= $duree_mois; $i++) {
+            $date_echeance_mois = date('Y-m-d', strtotime("+$i months"));
+            $queryEch = "INSERT INTO echeances_prets (pret_id, numero_echeance, montant_du, date_echeance)
+                         VALUES (:pid, :num, :montant, :date)";
+            $stmtEch = $this->conn->prepare($queryEch);
+            $stmtEch->execute([
+                'pid' => $pret_id,
+                'num' => $i,
+                'montant' => $montant_echeance,
+                'date' => $date_echeance_mois
+            ]);
+        }
+        
+        // Retirer le montant du solde de la caisse
+        $this->updateSoldeCaisse($montant, 'retrait');
+        $this->enregistrerOperation('pret', $montant, "Prêt accordé d'un montant de " . number_format($montant, 0, ',', ' ') . " F (taux " . $taux_interet . "%)");
+        
+        return ['success' => true, 'pret_id' => $pret_id, 'message' => 'Prêt créé avec succès'];
+    }
+
+    /**
+     * Enregistrer un remboursement d'échéance
+     */
+    public function rembourserEcheance($echeance_id, $montant_paye) {
+        // Récupérer l'échéance
+        $query = "SELECT e.*, p.montant_total_du, p.montant_pret, p.taux_interet 
+                  FROM echeances_prets e
+                  JOIN prets p ON e.pret_id = p.id
+                  WHERE e.id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['id' => $echeance_id]);
+        $echeance = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if(!$echeance) {
+            return ['success' => false, 'message' => 'Échéance non trouvée'];
+        }
+        
+        // Mettre à jour l'échéance
+        $query = "UPDATE echeances_prets 
+                  SET montant_paye = :paye, date_paiement = NOW(), statut = 'paye'
+                  WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            'paye' => $montant_paye,
+            'id' => $echeance_id
+        ]);
+        
+        // Ajouter le montant au solde de la caisse
+        $this->updateSoldeCaisse($montant_paye, 'ajout');
+        $this->enregistrerOperation('remboursement', $montant_paye, "Remboursement d'échéance n°" . $echeance['numero_echeance']);
+        
+        // Vérifier si toutes les échéances sont payées
+        $query = "SELECT COUNT(*) as total, 
+                         SUM(CASE WHEN statut = 'paye' THEN 1 ELSE 0 END) as paye
+                  FROM echeances_prets WHERE pret_id = :pid";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['pid' => $echeance['pret_id']]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($stats['total'] == $stats['paye']) {
+            $query = "UPDATE prets SET statut = 'rembourse' WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['id' => $echeance['pret_id']]);
+        }
+        
+        return ['success' => true, 'message' => 'Remboursement enregistré'];
+    }
+
+    /**
+     * Récupérer tous les prêts d'une tontine
+     */
+    public function getPrets($statut = null) {
+        $query = "SELECT p.*, u.prenom, u.nom 
+                  FROM prets p
+                  JOIN membre_tontine mt ON p.membre_id = mt.id
+                  JOIN users u ON mt.user_id = u.id
+                  WHERE p.tontine_id = :tid";
+        
+        if($statut) {
+            $query .= " AND p.statut = :statut";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['tid' => $this->id, 'statut' => $statut]);
+        } else {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['tid' => $this->id]);
+        }
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupérer les échéances d'un prêt
+     */
+    public function getEcheancesPret($pret_id) {
+        $query = "SELECT * FROM echeances_prets WHERE pret_id = :pid ORDER BY numero_echeance ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['pid' => $pret_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Vérifier les prêts en retard et appliquer des pénalités
+     */
+    public function verifierPretsEnRetard() {
+        $aujourdhui = date('Y-m-d');
+        
+        $query = "SELECT p.*, e.id as echeance_id, e.numero_echeance, e.montant_du
+                  FROM prets p
+                  JOIN echeances_prets e ON p.id = e.pret_id
+                  WHERE p.tontine_id = :tid 
+                    AND p.statut = 'actif'
+                    AND e.statut = 'en_attente'
+                    AND e.date_echeance < :aujourdhui";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(['tid' => $this->id, 'aujourdhui' => $aujourdhui]);
+        $echeances_retard = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach($echeances_retard as $e) {
+            $query = "UPDATE echeances_prets SET statut = 'retard' WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute(['id' => $e['echeance_id']]);
+            
+            // Appliquer une pénalité de retard (5% du montant dû)
+            $penalite = round($e['montant_du'] * 0.05);
+            $this->updateSoldeCaisse($penalite, 'ajout');
+            $this->enregistrerOperation('penalite', $penalite, "Pénalité de retard - Prêt - Échéance n°" . $e['numero_echeance']);
+        }
+        
+        return count($echeances_retard);
+    }
+    
 }
 ?>

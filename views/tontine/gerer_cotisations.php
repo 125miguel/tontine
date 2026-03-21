@@ -65,19 +65,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
         
         // Déterminer le montant à appliquer
         if($montant_saisi !== '' && $montant_saisi > 0) {
-            // Utiliser le montant saisi
             $montant = $montant_saisi;
         } elseif($regle && $regle['montant'] > 0) {
-            // Utiliser le montant par défaut de la règle
             $montant = $regle['montant'];
         } else {
-            // Pas de montant valide
             header("Location: gerer_cotisations.php?seance_id=" . $seance_id . "&amende_erreur=1");
             exit();
         }
         
         if($regle) {
-            // Utiliser la règle existante
             $amendeAppliquee->appliquer(
                 $seance_id,
                 $membre_id,
@@ -86,7 +82,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
                 date('Y-m-d')
             );
         } else {
-            // Créer une règle temporaire
             $queryNewRegle = "INSERT INTO regles_amendes 
                               (tontine_id, type_amende, montant, description) 
                               VALUES (:tid, :type, :montant, 'Amende manuelle')";
@@ -107,6 +102,26 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
             );
         }
         
+        // Pour les tontines solidarité ou prêt, ajouter l'amende au solde
+        if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $montant > 0) {
+            // Récupérer les infos du membre pour le message
+            $queryMembre = "SELECT u.prenom, u.nom FROM membre_tontine mt
+                            JOIN users u ON mt.user_id = u.id
+                            WHERE mt.id = :mid";
+            $stmtMembre = $db->prepare($queryMembre);
+            $stmtMembre->execute(['mid' => $membre_id]);
+            $membreInfo = $stmtMembre->fetch(PDO::FETCH_ASSOC);
+            
+            $tontine->updateSoldeCaisse($montant, 'ajout');
+            $tontine->enregistrerOperation(
+                'amende', 
+                $montant, 
+                "Amende manuelle (" . $type . ") pour " . $membreInfo['prenom'] . ' ' . $membreInfo['nom']
+            );
+            // Recharger la tontine
+            $tontine->getById($tontine->id);
+        }
+        
         header("Location: gerer_cotisations.php?seance_id=" . $seance_id . "&amende_manuelle=ok");
         exit();
     }
@@ -115,7 +130,33 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['appliquer_amende_manuel
 // Traiter le marquage d'un paiement
 if(isset($_GET['payer'])) {
     $cotisation_id = $_GET['payer'];
+    
+    // Récupérer les informations de la cotisation avant mise à jour
+    $queryInfo = "SELECT c.*, mt.user_id, u.prenom, u.nom 
+                  FROM cotisations c
+                  JOIN membre_tontine mt ON c.membre_tontine_id = mt.id
+                  JOIN users u ON mt.user_id = u.id
+                  WHERE c.id = :cid";
+    $stmtInfo = $db->prepare($queryInfo);
+    $stmtInfo->execute(['cid' => $cotisation_id]);
+    $cotisation_info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+    
+    // Marquer la cotisation comme payée
     $cotisation->updateStatut($cotisation_id, 'paye', date('Y-m-d'));
+    
+    // Pour les tontines solidarité ou prêt, ajouter au solde de la caisse
+    if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $cotisation_info) {
+        $tontine->updateSoldeCaisse($cotisation_info['montant'], 'ajout');
+        $tontine->enregistrerOperation(
+            'cotisation', 
+            $cotisation_info['montant'], 
+            "Cotisation de " . $cotisation_info['prenom'] . ' ' . $cotisation_info['nom'],
+            $cotisation_id
+        );
+        // Recharger la tontine pour avoir le nouveau solde
+        $tontine->getById($tontine->id);
+    }
+    
     header("Location: gerer_cotisations.php?seance_id=" . $seance_id);
     exit();
 }
@@ -123,6 +164,16 @@ if(isset($_GET['payer'])) {
 // Traiter le marquage d'un retard (avec amende automatique)
 if(isset($_GET['retard'])) {
     $cotisation_id = $_GET['retard'];
+    
+    // Récupérer les informations de la cotisation avant mise à jour
+    $queryInfo = "SELECT c.*, mt.user_id, u.prenom, u.nom 
+                  FROM cotisations c
+                  JOIN membre_tontine mt ON c.membre_tontine_id = mt.id
+                  JOIN users u ON mt.user_id = u.id
+                  WHERE c.id = :cid";
+    $stmtInfo = $db->prepare($queryInfo);
+    $stmtInfo->execute(['cid' => $cotisation_id]);
+    $cotisation_info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
     
     // Marquer la cotisation comme retard
     $cotisation->updateStatut($cotisation_id, 'retard', date('Y-m-d'));
@@ -146,6 +197,18 @@ if(isset($_GET['retard'])) {
                 $regle['montant'],
                 date('Y-m-d')
             );
+            
+            // Pour les tontines solidarité ou prêt, ajouter l'amende au solde
+            if(($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret') && $cotisation_info) {
+                $tontine->updateSoldeCaisse($regle['montant'], 'ajout');
+                $tontine->enregistrerOperation(
+                    'amende', 
+                    $regle['montant'], 
+                    "Amende pour retard de " . $cotisation_info['prenom'] . ' ' . $cotisation_info['nom']
+                );
+                // Recharger la tontine
+                $tontine->getById($tontine->id);
+            }
         }
     }
     
@@ -173,8 +236,8 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
@@ -323,6 +386,14 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
         .table-warning {
             background-color: #FEF3C7;
         }
+        
+        .solde-info {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +403,16 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 <i class="bi bi-bank2"></i> TONTONTINE
             </a>
             <div class="navbar-nav ms-auto">
+                <?php if($tontine->type_tontine == 'solidarite'): ?>
+                    <span class="nav-link">
+                        <span class="badge bg-info">Solidarité</span>
+                    </span>
+                <?php endif; ?>
+                <?php if($tontine->type_tontine == 'pret'): ?>
+                    <span class="nav-link">
+                        <span class="badge bg-info">Prêt</span>
+                    </span>
+                <?php endif; ?>
                 <a class="nav-link" href="mes_tontines.php">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
@@ -350,6 +431,27 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                 
                 <?php if(isset($_GET['amende_erreur']) && $_GET['amende_erreur'] == 1): ?>
                     <div class="alert alert-danger"> Montant invalide. Veuillez saisir un montant ou utiliser le montant par défaut.</div>
+                <?php endif; ?>
+                
+                <!-- Affichage du solde pour solidarité ou prêt -->
+                <?php if($tontine->type_tontine == 'solidarite' || $tontine->type_tontine == 'pret'): ?>
+                    <div class="solde-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-piggy-bank" style="font-size: 24px;"></i>
+                                <strong>
+                                    <?php if($tontine->type_tontine == 'solidarite'): ?>
+                                        Caisse de solidarité
+                                    <?php else: ?>
+                                        Caisse des prêts
+                                    <?php endif; ?>
+                                </strong>
+                            </div>
+                            <div>
+                                <h3 class="mb-0"><?= number_format($tontine->solde_caisse, 0, ',', ' ') ?> FCFA</h3>
+                            </div>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
                 <div class="card">
@@ -398,7 +500,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                 <tbody>
                                     <?php while($c = $cotisations->fetch(PDO::FETCH_ASSOC)): ?>
                                         <tr>
-                                            <td><?= $c['ordre_tour'] ?></td>
+                                            <td class="text-center"><?= $c['ordre_tour'] ?></td>
                                             <td>
                                                 <strong><?= htmlspecialchars($c['prenom'] . ' ' . $c['nom']) ?></strong>
                                             </td>
@@ -424,7 +526,6 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                                                        onclick="return confirm('Marquer comme retard ?')">
                                                         <i class="bi bi-clock"></i> Retard
                                                     </a>
-                                                                                                           
                                                 <?php else: ?>
                                                     <span class="text-muted">✓ Payé</span>
                                                 <?php endif; ?>
@@ -561,7 +662,7 @@ $total_amendes = $amendeAppliquee->calculerTotalSeance($seance_id);
                             </div>
                         <?php endif; ?>
 
-                        <!-- Bouton pour désigner le bénéficiaire même avec des impayés -->
+                        <!-- Boutons d'action -->
                         <div class="text-center mt-4">
                             <a href="designer_beneficiaire.php?seance_id=<?= $seance_id ?>" 
                                class="btn btn-warning">

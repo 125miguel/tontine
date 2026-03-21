@@ -30,7 +30,7 @@ $database = new Database();
 $db = $database->getConnection();
 
 $tontine_id = $_GET['id'] ?? 0;
-$mode = $_GET['mode'] ?? 'normal'; // Ajout : récupérer le mode (manuel ou normal)
+$mode = $_GET['mode'] ?? 'normal';
 
 // Vérifier que la tontine appartient bien à cet admin
 $tontine = new Tontine($db);
@@ -56,7 +56,7 @@ $user = new User($db);
 $error = '';
 $success = '';
 
-// Traiter la création d'un nouveau membre (CAS 2 et 3)
+// Traiter la création d'un nouveau membre
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
     
     $nom = $_POST['nom'] ?? '';
@@ -64,11 +64,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
     $email = $_POST['email'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
     $adresse = $_POST['adresse'] ?? '';
+    $date_anniversaire = $_POST['date_anniversaire'] ?? null;
     
     if(empty($nom) || empty($prenom) || empty($email) || empty($telephone)) {
         $error = "Tous les champs sont obligatoires";
     } else {
-        // Vérifier si l'email existe déjà (sécurité)
+        // Vérifier si l'email existe déjà
         $query = "SELECT id FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->execute(['email' => $email]);
@@ -89,7 +90,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             
             if($stmt->rowCount() > 0) {
                 $error = "Cet utilisateur est déjà dans votre association. Veuillez utiliser la recherche.";
-                header("Location: ajouter_membre.php?id=" . $tontine_id . "&mode=" . $mode);
+                header("Location: ajouter_membre.php?id=" . $tontine_id . "&mode=" . $mode . "&error=exist");
                 exit();
             }
         } else {
@@ -100,7 +101,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
             $query = "INSERT INTO users (nom, prenom, email, telephone, adresse, password, role, premiere_connexion) 
                       VALUES (:nom, :prenom, :email, :telephone, :adresse, :password, 'membre', 1)";
             $stmt = $db->prepare($query);
-            $stmt->execute([
+            $result = $stmt->execute([
                 'nom' => $nom,
                 'prenom' => $prenom,
                 'email' => $email,
@@ -109,42 +110,62 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['creer_membre'])) {
                 'password' => $hashed
             ]);
             
-            $user_id = $db->lastInsertId();
+            if(!$result) {
+                $error = "Erreur lors de la création de l'utilisateur";
+            } else {
+                $user_id = $db->lastInsertId();
+            }
         }
         
-        // Ajouter à l'association (pour CAS 2 et 3) avec rôle 'membre'
-        $temp_password = $temp_password ?? genererMotDePasse(6);
-        $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
-        
-        $query = "INSERT INTO membres_association (user_id, association_id, password, role) 
-                  VALUES (:uid, :aid, :password, 'membre')";
-        $stmt = $db->prepare($query);
-        $stmt->execute([
-            'uid' => $user_id,
-            'aid' => $association['id'],
-            'password' => $hashed
-        ]);
-        
-        // Ajouter à la tontine
-        $membreTontine->user_id = $user_id;
-        $membreTontine->tontine_id = $tontine_id;
-        $membreTontine->association_id = $association['id'];
-        $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
-        $membreTontine->ajouterMembre();
-        
-        $_SESSION['temp_password'] = $temp_password;
-        $_SESSION['temp_user'] = $email;
-        
-        header("Location: ajouter_membre.php?id=" . $tontine_id . "&mode=" . $mode . "&created=1");
-        exit();
+        if(!isset($error) || empty($error)) {
+            // Ajouter à l'association
+            $temp_password = $temp_password ?? genererMotDePasse(6);
+            $hashed = password_hash($temp_password, PASSWORD_DEFAULT);
+            
+            $query = "INSERT INTO membres_association (user_id, association_id, password, role) 
+                      VALUES (:uid, :aid, :password, 'membre')";
+            $stmt = $db->prepare($query);
+            $result = $stmt->execute([
+                'uid' => $user_id,
+                'aid' => $association['id'],
+                'password' => $hashed
+            ]);
+            
+            if(!$result) {
+                $error = "Erreur lors de l'ajout à l'association";
+            } else {
+                // Ajouter à la tontine
+                $membreTontine->user_id = $user_id;
+                $membreTontine->tontine_id = $tontine_id;
+                $membreTontine->association_id = $association['id'];
+                $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
+                
+                if($membreTontine->ajouterMembre()) {
+                    // Ajouter la date d'anniversaire si la tontine est de type anniversaire
+                    if($tontine->type_tontine == 'anniversaire' && !empty($date_anniversaire)) {
+                        $query = "UPDATE membre_tontine SET date_anniversaire = :date WHERE id = :id";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute(['date' => $date_anniversaire, 'id' => $membreTontine->id]);
+                    }
+                    
+                    $_SESSION['temp_password'] = $temp_password;
+                    $_SESSION['temp_user'] = $email;
+                    
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?id=" . $tontine_id . "&mode=" . $mode . "&created=1");
+                    exit();
+                } else {
+                    $error = "Erreur lors de l'ajout à la tontine";
+                }
+            }
+        }
     }
 }
 
 // Ajouter un membre existant à la tontine (CAS 1)
 if(isset($_GET['add_user'])) {
     $user_id = $_GET['add_user'];
+    $need_birthday = isset($_GET['need_birthday']) ? 1 : 0;
     
-    // Vérifier si déjà membre de cette tontine
     $membreTontine->user_id = $user_id;
     $membreTontine->tontine_id = $tontine_id;
     $membreTontine->association_id = $association['id'];
@@ -152,11 +173,30 @@ if(isset($_GET['add_user'])) {
     if($membreTontine->estDejaMembre()) {
         $error = "Cet utilisateur est déjà membre de cette tontine";
     } else {
-        // Obtenir le prochain ordre
         $membreTontine->ordre_tour = $membreTontine->getProchainOrdre($tontine_id);
         
         if($membreTontine->ajouterMembre()) {
-            $success = "Membre ajouté avec succès à la tontine !";
+            // Récupérer l'ID du membre qui vient d'être ajouté
+            $query = "SELECT id FROM membre_tontine 
+                      WHERE user_id = :uid AND tontine_id = :tid AND association_id = :aid";
+            $stmt = $db->prepare($query);
+            $stmt->execute([
+                'uid' => $user_id,
+                'tid' => $tontine_id,
+                'aid' => $association['id']
+            ]);
+            $new_membre = $stmt->fetch(PDO::FETCH_ASSOC);
+            $new_membre_id = $new_membre['id'] ?? null;
+            
+            // Si c'est une tontine anniversaire et qu'on a besoin de la date
+            if($tontine->type_tontine == 'anniversaire' && $need_birthday && $new_membre_id) {
+                // Rediriger vers la page pour saisir la date
+                header("Location: saisir_anniversaire.php?membre_id=" . $new_membre_id . "&tontine_id=" . $tontine_id);
+                exit();
+            } else {
+                $success = "Membre ajouté avec succès à la tontine !";
+                // Rester sur la page actuelle
+            }
         } else {
             $error = "Erreur lors de l'ajout du membre";
         }
@@ -169,14 +209,12 @@ $user_trouve = null;
 $est_dans_association = false;
 
 if(!empty($search)) {
-    // Chercher si l'email/téléphone existe déjà dans users
     $query = "SELECT * FROM users WHERE email = :search OR telephone = :search";
     $stmt = $db->prepare($query);
     $stmt->execute(['search' => $search]);
     $user_trouve = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if($user_trouve) {
-        // Vérifier s'il est déjà dans l'association
         $query = "SELECT * FROM membres_association 
                   WHERE user_id = :uid AND association_id = :aid";
         $stmt = $db->prepare($query);
@@ -188,7 +226,7 @@ if(!empty($search)) {
     }
 }
 
-// Compter le nombre de membres déjà dans la tontine
+// Compter les membres
 $queryCount = "SELECT COUNT(*) as total FROM membre_tontine WHERE tontine_id = :tid AND est_actif = 1";
 $stmtCount = $db->prepare($queryCount);
 $stmtCount->execute(['tid' => $tontine_id]);
@@ -204,8 +242,8 @@ $membres_count = $stmtCount->fetch()['total'];
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
@@ -213,8 +251,10 @@ $membres_count = $stmtCount->fetch()['total'];
             --border: #E2E8F0;
             --success: #10B981;
             --warning: #F59E0B;
+            --warning-bg: #FEF3C7;
             --danger: #EF4444;
             --info: #3B82F6;
+            --info-bg: #DBEAFE;
         }
         
         body {
@@ -272,7 +312,6 @@ $membres_count = $stmtCount->fetch()['total'];
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid var(--border);
         }
         
         .password-value {
@@ -287,7 +326,7 @@ $membres_count = $stmtCount->fetch()['total'];
         }
         
         .info-box {
-            background: #DBEAFE;
+            background: var(--info-bg);
             border-left: 4px solid var(--primary);
             padding: 15px;
             border-radius: 10px;
@@ -295,7 +334,7 @@ $membres_count = $stmtCount->fetch()['total'];
         }
         
         .alert-info {
-            background: #DBEAFE;
+            background: var(--info-bg);
             color: var(--primary);
             border: none;
             border-radius: 10px;
@@ -316,7 +355,7 @@ $membres_count = $stmtCount->fetch()['total'];
         }
         
         .alert-warning {
-            background: #FEF3C7;
+            background: var(--warning-bg);
             color: #92400E;
             border: none;
             border-radius: 10px;
@@ -351,6 +390,23 @@ $membres_count = $stmtCount->fetch()['total'];
             font-size: 14px;
             font-weight: 600;
         }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-anniversaire { background: #FEF3C7; color: #92400E; }
+        
+        .birthday-icon {
+            color: var(--warning);
+            font-size: 20px;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -363,6 +419,13 @@ $membres_count = $stmtCount->fetch()['total'];
                 <span class="nav-link">
                     <i class="bi bi-building"></i> <?= htmlspecialchars($association['nom']) ?>
                 </span>
+                <?php if($tontine->type_tontine == 'anniversaire'): ?>
+                <span class="nav-link">
+                    <span class="type-badge badge-anniversaire">
+                        <i class="bi bi-gift"></i> Anniversaire
+                    </span>
+                </span>
+                <?php endif; ?>
                 <?php if($mode == 'manuel'): ?>
                 <span class="nav-link">
                     <span class="mode-badge">
@@ -384,7 +447,26 @@ $membres_count = $stmtCount->fetch()['total'];
         <div class="row">
             <div class="col-md-8 offset-md-2">
                 
-                <!-- Bannière mode manuel (visible uniquement en mode manuel) -->
+                <!-- Messages de confirmation -->
+                <?php if(isset($_GET['birthday_saved']) && $_GET['birthday_saved'] == 1): ?>
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill me-2"></i> 
+                        Date d'anniversaire enregistrée avec succès !
+                    </div>
+                <?php endif; ?>
+
+                <!-- Bannière spéciale pour les anniversaires -->
+                <?php if($tontine->type_tontine == 'anniversaire'): ?>
+                <div class="alert alert-warning d-flex align-items-center mb-4">
+                    <i class="bi bi-gift-fill birthday-icon"></i>
+                    <div>
+                        <strong>Tontine Anniversaire</strong> - N'oubliez pas de saisir la date d'anniversaire de chaque membre.
+                        Le système classera automatiquement les bénéficiaires par date la plus proche.
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Bannière mode manuel -->
                 <?php if($mode == 'manuel'): ?>
                 <div class="alert alert-info d-flex align-items-center mb-4">
                     <div class="me-3">
@@ -401,7 +483,7 @@ $membres_count = $stmtCount->fetch()['total'];
                 </div>
                 <?php endif; ?>
 
-                <!-- Barre de progression (mode manuel) -->
+                <!-- Barre de progression -->
                 <?php if($mode == 'manuel' && $membres_count > 0): ?>
                 <div class="card mb-4">
                     <div class="card-body">
@@ -416,10 +498,6 @@ $membres_count = $stmtCount->fetch()['total'];
                                  aria-valuemin="0" 
                                  aria-valuemax="10"></div>
                         </div>
-                        <p class="text-muted small mt-2">
-                            <i class="bi bi-info-circle"></i> 
-                            Vous pouvez ajouter autant de membres que vous le souhaitez.
-                        </p>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -427,7 +505,7 @@ $membres_count = $stmtCount->fetch()['total'];
                 <!-- Message pour afficher le mot de passe temporaire -->
                 <?php if(isset($_GET['created']) && isset($_SESSION['temp_password'])): ?>
                     <div class="temp-password">
-                        <h5 class="mb-3"><i class="bi bi-check-circle"></i>  Membre créé avec succès !</h5>
+                        <h5 class="mb-3"><i class="bi bi-check-circle"></i> Membre créé avec succès !</h5>
                         <p>
                             <strong>Email :</strong> <?= htmlspecialchars($_SESSION['temp_user']) ?><br>
                             <strong>Mot de passe temporaire :</strong> 
@@ -458,7 +536,7 @@ $membres_count = $stmtCount->fetch()['total'];
                     <div class="card-body">
                         
                         <!-- Formulaire de recherche -->
-                        <form method="GET" class="mb-4">
+                        <form method="GET" action="<?= $_SERVER['PHP_SELF'] ?>" class="mb-4">
                             <input type="hidden" name="id" value="<?= $tontine_id ?>">
                             <input type="hidden" name="mode" value="<?= $mode ?>">
                             <div class="input-group">
@@ -486,11 +564,19 @@ $membres_count = $stmtCount->fetch()['total'];
                                             <strong>Adresse :</strong> <?= htmlspecialchars($user_trouve['adresse']) ?>
                                         <?php endif; ?>
                                     </p>
-                                    <a href="?id=<?= $tontine_id ?>&mode=<?= $mode ?>&add_user=<?= $user_trouve['id'] ?>" 
-                                       class="btn btn-success"
-                                       onclick="return confirm('Ajouter ce membre à la tontine ?')">
-                                        <i class="bi bi-person-plus"></i> Ajouter à cette tontine
-                                    </a>
+                                    <?php if($tontine->type_tontine == 'anniversaire'): ?>
+                                        <a href="<?= $_SERVER['PHP_SELF'] ?>?id=<?= $tontine_id ?>&mode=<?= $mode ?>&add_user=<?= $user_trouve['id'] ?>&need_birthday=1" 
+                                           class="btn btn-success"
+                                           onclick="return confirm('Ajouter ce membre à la tontine ?')">
+                                            <i class="bi bi-calendar-plus"></i> Ajouter et saisir anniversaire
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="<?= $_SERVER['PHP_SELF'] ?>?id=<?= $tontine_id ?>&mode=<?= $mode ?>&add_user=<?= $user_trouve['id'] ?>" 
+                                           class="btn btn-success"
+                                           onclick="return confirm('Ajouter ce membre à la tontine ?')">
+                                            <i class="bi bi-person-plus"></i> Ajouter à cette tontine
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
                             <?php else: ?>
                                 <!-- CAS 2 et 3 : Membre pas dans l'association ou inexistant -->
@@ -503,10 +589,13 @@ $membres_count = $stmtCount->fetch()['total'];
                                 <!-- Formulaire de création -->
                                 <div class="card mt-3">
                                     <div class="card-header" style="background: var(--success); color: var(--white);">
-                                        <h5 class="mb-0">Créer un nouveau membre pour votre association</h5>
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-person-plus"></i> 
+                                            Créer un nouveau membre pour votre association
+                                        </h5>
                                     </div>
                                     <div class="card-body">
-                                        <form method="POST">
+                                        <form method="POST" action="<?= $_SERVER['PHP_SELF'] ?>?id=<?= $tontine_id ?>&mode=<?= $mode ?>">
                                             <input type="hidden" name="creer_membre" value="1">
                                             <div class="row">
                                                 <div class="col-md-6 mb-3">
@@ -530,6 +619,22 @@ $membres_count = $stmtCount->fetch()['total'];
                                                     <label class="form-label">Adresse / Quartier (optionnel)</label>
                                                     <input type="text" name="adresse" class="form-control" placeholder="Ex: Bonanjo, Douala">
                                                 </div>
+                                                
+                                                <!-- Champ date d'anniversaire pour les tontines anniversaire -->
+                                                <?php if($tontine->type_tontine == 'anniversaire'): ?>
+                                                <div class="col-12 mb-3">
+                                                    <label class="form-label">
+                                                        <i class="bi bi-gift"></i> Date d'anniversaire
+                                                    </label>
+                                                    <input type="date" name="date_anniversaire" class="form-control" 
+                                                           value="<?= date('Y-m-d') ?>" required>
+                                                    <small class="text-muted">
+                                                        Cette date servira à déterminer l'ordre des bénéficiaires 
+                                                        (du plus proche au plus éloigné)
+                                                    </small>
+                                                </div>
+                                                <?php endif; ?>
+                                                
                                                 <div class="col-12">
                                                     <button type="submit" class="btn btn-success w-100">
                                                         <i class="bi bi-person-plus"></i> Créer et ajouter à l'association
@@ -548,8 +653,30 @@ $membres_count = $stmtCount->fetch()['total'];
                     </div>
                 </div>
 
-                <!-- Bouton pour passer à l'ordonnancement (visible uniquement en mode manuel) -->
-                <?php if($mode == 'manuel' && $membres_count > 0): ?>
+                <!-- Actions supplémentaires -->
+                <?php if($tontine->type_tontine == 'anniversaire' && $membres_count > 0): ?>
+                <div class="card mt-4" style="border-left: 4px solid var(--warning);">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1"><i class="bi bi-gift"></i> Classement par anniversaire</h5>
+                                <p class="text-muted mb-0">
+                                    Vous avez ajouté <strong><?= $membres_count ?> membre<?= $membres_count > 1 ? 's' : '' ?></strong>.
+                                    Une fois tous les membres ajoutés, vous pourrez classer automatiquement 
+                                    par ordre d'anniversaire (du plus proche au plus éloigné).
+                                </p>
+                            </div>
+                            <a href="classer_anniversaire.php?tontine_id=<?= $tontine_id ?>" 
+                               class="btn btn-warning btn-lg">
+                                <i class="bi bi-sort-numeric-down"></i> Classer par anniversaire
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Bouton pour passer à l'ordonnancement (mode manuel) -->
+                <?php if($mode == 'manuel' && $membres_count > 0 && $tontine->type_tontine != 'anniversaire'): ?>
                 <div class="card mt-4" style="border-left: 4px solid var(--primary);">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -563,14 +690,12 @@ $membres_count = $stmtCount->fetch()['total'];
                             <a href="ordonner_membres.php?tontine_id=<?= $tontine_id ?>" 
                                class="btn btn-primary btn-lg">
                                 <i class="bi bi-sort-numeric-down"></i> Ordonner les bénéficiaires
-                                <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
                     </div>
                 </div>
                 <?php endif; ?>
 
-                <!-- Lien pour passer à l'ordonnancement même si aucun membre (cas particulier) -->
                 <?php if($mode == 'manuel' && $membres_count == 0): ?>
                 <div class="alert alert-warning mt-4">
                     <i class="bi bi-exclamation-triangle"></i>

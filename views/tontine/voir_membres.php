@@ -633,6 +633,17 @@ $nb_cycles_effectues = $stmt_cycles->fetch()['total'];
                 <a href="ajouter_membre.php?id=<?= $tontine_id ?><?= $tontine->mode_beneficiaire == 'manuel' ? '&mode=manuel' : '' ?>" class="btn btn-success">
                     <i class="bi bi-person-plus-fill"></i> Ajouter un membre
                 </a>
+                <!-- Dans voir_membres.php, après la section des boutons d'action -->
+                <?php if($tontine->type_tontine == 'solidarite'): ?>
+                    <a href="demander_aide.php?tontine_id=<?= $tontine_id ?>" class="btn btn-info ms-2">
+                        <i class="bi bi-shield-check"></i> Gestion des demandes d'aide
+                    </a>
+                <?php endif; ?>
+                <?php if($tontine->type_tontine == 'pret'): ?>
+                    <a href="gerer_prets.php?tontine_id=<?= $tontine_id ?>" class="btn btn-info ms-2">
+                        <i class="bi bi-cash-stack"></i> Gestion des prêts
+                    </a>
+                <?php endif; ?>
                 <?php 
                 // Vérifier si l'ordre a déjà été finalisé
                 $query = "SELECT ordre_finalise FROM tontines WHERE id = :id";
@@ -699,6 +710,64 @@ $nb_cycles_effectues = $stmt_cycles->fetch()['total'];
                                 Prochaine séance
                             </span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- la carte  ajouter pour solidarité -->
+        <?php if($tontine->type_tontine == 'solidarite'): ?>
+        <div class="card mb-4" style="border-left: 4px solid var(--info);">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="beneficiaire-avatar" style="background: var(--info);">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-1">Caisse de solidarité</h5>
+                        <h3 class="mb-0" style="color: var(--info);">
+                            <?= number_format($tontine->solde_caisse, 0, ',', ' ') ?> FCFA
+                        </h3>
+                        <small class="text-muted">Fonds disponibles pour les demandes d'aide</small>
+                    </div>
+                    <div class="col-auto">
+                        <a href="demander_aide.php?tontine_id=<?= $tontine_id ?>" class="btn btn-info">
+                            <i class="bi bi-shield-check"></i> Gérer les demandes
+                        </a>
+                    </div>
+                    <?php if($tontine->type_tontine == 'solidarite'): ?>
+                        <a href="historique_caisse.php?tontine_id=<?= $tontine_id ?>" class="btn btn-outline-info ms-2">
+                            <i class="bi bi-clock-history"></i> Historique
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        <!-- Carte du solde pour les prêts -->
+        <?php if($tontine->type_tontine == 'pret'): ?>
+        <div class="card mb-4" style="border-left: 4px solid var(--info);">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="beneficiaire-avatar" style="background: var(--info);">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-1">Caisse des prêts</h5>
+                        <h3 class="mb-0" style="color: var(--info);">
+                            <?= number_format($tontine->solde_caisse, 0, ',', ' ') ?> FCFA
+                        </h3>
+                        <small class="text-muted">Fonds disponibles pour les prêts</small>
+                    </div>
+                    <div class="col-auto">
+                        <a href="gerer_prets.php?tontine_id=<?= $tontine_id ?>" class="btn btn-info">
+                            <i class="bi bi-cash-stack"></i> Gestion des prêts
+                        </a>
                     </div>
                 </div>
             </div>

@@ -23,7 +23,6 @@ $stmt->execute(['admin_id' => $_SESSION['user_id']]);
 $association = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(!$association) {
-    // Normalement ça n'arrive pas, mais au cas où
     header("Location: mes_tontines.php?error=no_association");
     exit();
 }
@@ -38,15 +37,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $type_tontine = $_POST['type_tontine'] ?? 'anniversaire';
     $mode_beneficiaire = $_POST['mode_beneficiaire'] ?? 'manuel';
     $montant = $_POST['montant'] ?? '';
+    $type_cotisation = $_POST['type_cotisation'] ?? 'fixe';
     $periodicite = $_POST['periodicite'] ?? '';
     $jour_reunion = $_POST['jour_reunion'] ?? '';
     $prochaine_reunion = $_POST['prochaine_reunion'] ?? '';
     
-    // NOUVEAU : Récupérer les données du cycle
+    // Données du cycle
     $type_cycle = $_POST['type_cycle'] ?? '';
     $duree_cycle_perso = $_POST['duree_cycle_perso'] ?? 0;
     
-    if(empty($nom) || empty($montant) || empty($periodicite) || empty($jour_reunion) || empty($prochaine_reunion)) {
+    if(empty($nom) || empty($periodicite) || empty($jour_reunion) || empty($prochaine_reunion)) {
         $error = "Veuillez remplir tous les champs obligatoires";
     } else {
         $tontine = new Tontine($db);
@@ -54,49 +54,37 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tontine->description = $description;
         $tontine->type_tontine = $type_tontine;
         $tontine->mode_beneficiaire = $mode_beneficiaire;
-        $tontine->montant_cotisation = $montant;
+        $tontine->montant_cotisation = ($type_tontine == 'anniversaire' && $type_cotisation == 'libre') ? 0 : $montant;
+        $tontine->type_cotisation = $type_cotisation;
+        $tontine->solde_caisse = 0; // Solde initial à 0
         $tontine->periodicite = $periodicite;
         $tontine->jour_reunion = $jour_reunion;
         $tontine->prochaine_reunion = $prochaine_reunion;
         $tontine->admin_id = $_SESSION['user_id'];
         $tontine->association_id = $association['id'];
         
-        // NOUVEAU : Initialiser le cycle si sélectionné
+        // Gestion du cycle
         if(!empty($type_cycle)) {
             $tontine->type_cycle = $type_cycle;
             
-            // Calculer la durée en mois selon le type
             switch($type_cycle) {
-                case 'trimestriel':
-                    $duree = 3;
-                    break;
-                case 'semestriel':
-                    $duree = 6;
-                    break;
-                case 'annuel':
-                    $duree = 12;
-                    break;
-                case 'personnalise':
-                    $duree = intval($duree_cycle_perso);
-                    break;
-                default:
-                    $duree = 0;
+                case 'trimestriel': $duree = 3; break;
+                case 'semestriel': $duree = 6; break;
+                case 'annuel': $duree = 12; break;
+                case 'personnalise': $duree = intval($duree_cycle_perso); break;
+                default: $duree = 0;
             }
             
             if($duree > 0) {
                 $tontine->duree_cycle = $duree;
                 $tontine->date_debut_cycle = date('Y-m-d');
-                
-                // Calculer la date de fin
                 $date_fin = new DateTime();
                 $date_fin->modify('+' . $duree . ' months');
                 $tontine->date_fin_cycle = $date_fin->format('Y-m-d');
-                
                 $tontine->cycle_actuel = 1;
                 $tontine->cycle_termine = 0;
             }
         } else {
-            // Pas de cycle
             $tontine->type_cycle = null;
             $tontine->duree_cycle = null;
             $tontine->date_debut_cycle = null;
@@ -141,6 +129,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             --success: #10B981;
             --info: #3B82F6;
             --info-bg: #DBEAFE;
+            --warning: #F59E0B;
+            --warning-bg: #FEF3C7;
         }
         
         body {
@@ -210,6 +200,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 10px;
         }
         
+        .alert-info {
+            background: var(--info-bg);
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+        }
+        
         .badge-association {
             background: rgba(255,255,255,0.2);
             color: var(--white);
@@ -240,6 +237,28 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-right: 10px;
         }
         
+        .type-info {
+            background: var(--warning-bg);
+            border-left: 4px solid var(--warning);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-anniversaire { background: #FEF3C7; color: #92400E; }
+        .badge-djangui { background: #DBEAFE; color: var(--primary); }
+        .badge-solidarite { background: #D1FAE5; color: #065F46; }
+        .badge-pret { background: #E0E7FF; color: #3730A3; }
+        
         .cycle-option {
             background: var(--white);
             border: 1px solid var(--border);
@@ -252,11 +271,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         .cycle-option:hover {
             border-color: var(--primary);
             box-shadow: 0 2px 10px rgba(30, 58, 138, 0.1);
-        }
-        
-        .cycle-option.selected {
-            border-color: var(--primary);
-            background: var(--info-bg);
         }
     </style>
 </head>
@@ -309,29 +323,63 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Type de tontine</label>
-                                    <select name="type_tontine" class="form-select">
+                                    <select name="type_tontine" class="form-select" id="type_tontine" onchange="updateTypeOptions()">
+                                        <option value="djangui" <?= ($_POST['type_tontine'] ?? 'djangui') == 'djangui' ? 'selected' : '' ?>> Djangui (Classique)</option>
                                         <option value="anniversaire" <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'selected' : '' ?>> Anniversaire</option>
-                                        <option value="djangui" <?= ($_POST['type_tontine'] ?? '') == 'djangui' ? 'selected' : '' ?>> Djangui</option>
-                                        <option value="solidarite" <?= ($_POST['type_tontine'] ?? '') == 'solidarite' ? 'selected' : '' ?>> Solidarité</option>
+                                        <option value="solidarite" <?= ($_POST['type_tontine'] ?? '') == 'solidarite' ? 'selected' : '' ?>> Solidarité / Assurance</option>
+                                        <option value="pret" <?= ($_POST['type_tontine'] ?? '') == 'pret' ? 'selected' : '' ?>> Prêt avec intérêts</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Mode bénéficiaire</label>
-                                    <select name="mode_beneficiaire" class="form-select">
-                                        <option value="manuel" <?= ($_POST['mode_beneficiaire'] ?? '') == 'manuel' ? 'selected' : '' ?>> Manuel</option>
+                                    <select name="mode_beneficiaire" class="form-select" id="mode_beneficiaire">
+                                        <option value="manuel" <?= ($_POST['mode_beneficiaire'] ?? 'manuel') == 'manuel' ? 'selected' : '' ?>> Manuel</option>
                                         <option value="auto" <?= ($_POST['mode_beneficiaire'] ?? '') == 'auto' ? 'selected' : '' ?>> Automatique</option>
                                     </select>
                                 </div>
                             </div>
 
-                            <div class="row">
+                            <!-- Informations spécifiques selon le type -->
+                            <div id="info_djangui" class="type-info" style="display: <?= ($_POST['type_tontine'] ?? 'djangui') == 'djangui' ? 'block' : 'none' ?>;">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Djangui classique :</strong> Cotisation fixe, ordre de bénéficiaire défini, cycle traditionnel.
+                            </div>
+
+                            <div id="info_anniversaire" class="type-info" style="display: <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'block' : 'none' ?>;">
+                                <i class="bi bi-gift"></i>
+                                <strong>Anniversaire :</strong> Les membres sont classés par date d'anniversaire la plus proche.
+                            </div>
+
+                            <div id="info_solidarite" class="type-info" style="display: <?= ($_POST['type_tontine'] ?? '') == 'solidarite' ? 'block' : 'none' ?>;">
+                                <i class="bi bi-shield-check"></i>
+                                <strong>Solidarité / Assurance :</strong> Caisse commune pour aider les membres en cas de besoin.
+                            </div>
+
+                            <div id="info_pret" class="type-info" style="display: <?= ($_POST['type_tontine'] ?? '') == 'pret' ? 'block' : 'none' ?>;">
+                                <i class="bi bi-cash-stack"></i>
+                                <strong>Prêt avec intérêts :</strong> Les membres peuvent emprunter avec intérêts qui alimentent la caisse.
+                            </div>
+
+                            <!-- Section Montant / Cotisation -->
+                            <div class="row" id="montant_section">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Montant (FCFA) <span class="text-danger">*</span></label>
-                                    <input type="number" name="montant" class="form-control" 
-                                           value="<?= htmlspecialchars($_POST['montant'] ?? '') ?>" required>
+                                    <label class="form-label" id="montant_label">Montant de cotisation (FCFA) <span class="text-danger">*</span></label>
+                                    <input type="number" name="montant" class="form-control" id="montant_input"
+                                           value="<?= htmlspecialchars($_POST['montant'] ?? '') ?>" 
+                                           <?= (($_POST['type_tontine'] ?? 'djangui') == 'anniversaire' && ($_POST['type_cotisation'] ?? 'fixe') == 'libre') ? 'disabled' : '' ?>>
                                 </div>
 
+                                <div class="col-md-6 mb-3" id="type_cotisation_section" style="display: <?= ($_POST['type_tontine'] ?? '') == 'anniversaire' ? 'block' : 'none' ?>;">
+                                    <label class="form-label">Type de cotisation</label>
+                                    <select name="type_cotisation" class="form-select" id="type_cotisation" onchange="toggleMontant()">
+                                        <option value="fixe" <?= ($_POST['type_cotisation'] ?? 'fixe') == 'fixe' ? 'selected' : '' ?>>Montant fixe</option>
+                                        <option value="libre" <?= ($_POST['type_cotisation'] ?? '') == 'libre' ? 'selected' : '' ?>>Montant libre (chacun donne ce qu'il veut)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Périodicité <span class="text-danger">*</span></label>
                                     <select name="periodicite" class="form-select" required>
@@ -340,16 +388,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         <option value="journalier" <?= ($_POST['periodicite'] ?? '') == 'journalier' ? 'selected' : '' ?>>Journalier</option>
                                     </select>
                                 </div>
-                            </div>
 
-                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Jour de réunion <span class="text-danger">*</span></label>
                                     <input type="text" name="jour_reunion" class="form-control" 
                                            value="<?= htmlspecialchars($_POST['jour_reunion'] ?? '') ?>"
                                            placeholder="Ex: Samedi, 15 du mois" required>
                                 </div>
+                            </div>
 
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Prochaine réunion <span class="text-danger">*</span></label>
                                     <input type="date" name="prochaine_reunion" class="form-control" 
@@ -357,7 +405,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 </div>
                             </div>
 
-                            <!-- NOUVELLE SECTION : Gestion des cycles -->
+                            <!-- Gestion des cycles -->
                             <div class="info-box mb-4">
                                 <i class="bi bi-arrow-repeat"></i>
                                 <strong>Gestion des cycles (optionnel)</strong> - Définissez la durée de vie de votre tontine
@@ -372,10 +420,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <option value="annuel" <?= ($_POST['type_cycle'] ?? '') == 'annuel' ? 'selected' : '' ?>>Annuel (12 mois)</option>
                                     <option value="personnalise" <?= ($_POST['type_cycle'] ?? '') == 'personnalise' ? 'selected' : '' ?>>Cycle personnalisé</option>
                                 </select>
-                                <small class="text-muted">
-                                    Le cycle définit la durée pendant laquelle tous les membres pourront bénéficier. 
-                                    À la fin du cycle, vous pourrez renouveler la tontine.
-                                </small>
                             </div>
 
                             <div id="duree_personnalisee" style="display: none;" class="mb-4">
@@ -383,23 +427,20 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <input type="number" name="duree_cycle_perso" class="form-control" 
                                        min="1" max="60" value="<?= htmlspecialchars($_POST['duree_cycle_perso'] ?? '3') ?>"
                                        placeholder="Ex: 4 mois">
-                                <small class="text-muted">Entrez le nombre de mois (maximum 60 mois = 5 ans)</small>
                             </div>
 
-                            <!-- Aperçu du cycle -->
                             <div id="apercu_cycle" class="alert alert-info" style="display: none;">
                                 <i class="bi bi-calendar-check"></i>
                                 <span id="message_cycle"></span>
                             </div>
 
-                            <!-- Informations sur les cycles -->
                             <div class="cycle-option">
-                                <h6><i class="bi bi-question-circle"></i> Comment fonctionnent les cycles ?</h6>
+                                <h6><i class="bi bi-question-circle"></i> À propos des types de tontine</h6>
                                 <ul class="mb-0 small">
-                                    <li>Un cycle permet de planifier la durée de vie de votre tontine</li>
-                                    <li>À la fin du cycle, tous les membres auront bénéficié au moins une fois</li>
-                                    <li>Vous pourrez alors démarrer un nouveau cycle avec les mêmes membres ou en ajouter de nouveaux</li>
-                                    <li>L'ordre des bénéficiaires pourra être redéfini à chaque nouveau cycle</li>
+                                    <li><strong>Djangui :</strong> Fonctionnement classique avec ordre des bénéficiaires</li>
+                                    <li><strong>Anniversaire :</strong> Les membres sont classés par date d'anniversaire</li>
+                                    <li><strong>Solidarité :</strong> Caisse commune pour les situations d'urgence</li>
+                                    <li><strong>Prêt :</strong> Les membres peuvent emprunter avec intérêts</li>
                                 </ul>
                             </div>
 
@@ -414,7 +455,69 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <script>
-    // Gestion de l'affichage du champ de durée personnalisée
+    // Mettre à jour les options selon le type de tontine
+    function updateTypeOptions() {
+        const type = document.getElementById('type_tontine').value;
+        const modeSelect = document.getElementById('mode_beneficiaire');
+        const typeCotisationSection = document.getElementById('type_cotisation_section');
+        const montantInput = document.getElementById('montant_input');
+        const montantLabel = document.getElementById('montant_label');
+        
+        // Afficher/masquer les infos
+        document.getElementById('info_djangui').style.display = type === 'djangui' ? 'block' : 'none';
+        document.getElementById('info_anniversaire').style.display = type === 'anniversaire' ? 'block' : 'none';
+        document.getElementById('info_solidarite').style.display = type === 'solidarite' ? 'block' : 'none';
+        document.getElementById('info_pret').style.display = type === 'pret' ? 'block' : 'none';
+        
+        // Configuration selon le type
+        if(type === 'anniversaire') {
+            typeCotisationSection.style.display = 'block';
+            montantLabel.innerHTML = 'Montant de base (FCFA)';
+            // Activer les deux modes pour anniversaire
+            modeSelect.querySelector('option[value="manuel"]').disabled = false;
+            modeSelect.querySelector('option[value="auto"]').disabled = false;
+        } else if(type === 'solidarite') {
+            typeCotisationSection.style.display = 'none';
+            montantLabel.innerHTML = 'Cotisation mensuelle (FCFA)';
+            montantInput.disabled = false;
+            // Mode bénéficiaire non applicable
+            modeSelect.querySelector('option[value="manuel"]').disabled = true;
+            modeSelect.querySelector('option[value="auto"]').disabled = true;
+            modeSelect.value = 'manuel';
+        } else if(type === 'pret') {
+            typeCotisationSection.style.display = 'none';
+            montantLabel.innerHTML = 'Cotisation mensuelle (FCFA)';
+            montantInput.disabled = false;
+            // Mode bénéficiaire non applicable
+            modeSelect.querySelector('option[value="manuel"]').disabled = true;
+            modeSelect.querySelector('option[value="auto"]').disabled = true;
+            modeSelect.value = 'manuel';
+        } else { // djangui
+            typeCotisationSection.style.display = 'none';
+            montantLabel.innerHTML = 'Montant de cotisation (FCFA)';
+            montantInput.disabled = false;
+            modeSelect.querySelector('option[value="manuel"]').disabled = false;
+            modeSelect.querySelector('option[value="auto"]').disabled = false;
+        }
+        
+        toggleMontant();
+    }
+
+    // Gérer l'activation/désactivation du montant pour les anniversaires
+    function toggleMontant() {
+        const type = document.getElementById('type_tontine').value;
+        const typeCotisation = document.getElementById('type_cotisation')?.value;
+        const montantInput = document.getElementById('montant_input');
+        
+        if(type === 'anniversaire' && typeCotisation === 'libre') {
+            montantInput.disabled = true;
+            montantInput.value = '';
+        } else {
+            montantInput.disabled = false;
+        }
+    }
+
+    // Gestion des cycles (inchangée)
     document.getElementById('type_cycle').addEventListener('change', function() {
         const dureePerso = document.getElementById('duree_personnalisee');
         const apercu = document.getElementById('apercu_cycle');
@@ -426,7 +529,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             dureePerso.style.display = 'none';
         }
         
-        // Afficher l'aperçu
         if(this.value) {
             let texte = '';
             const aujourdhui = new Date();
@@ -459,7 +561,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     });
 
-    // Mettre à jour l'aperçu quand la durée personnalisée change
     document.querySelector('input[name="duree_cycle_perso"]')?.addEventListener('input', function() {
         const typeCycle = document.getElementById('type_cycle').value;
         if(typeCycle === 'personnalise') {
@@ -475,8 +576,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     });
 
-    // Déclencher l'événement au chargement si une valeur est déjà sélectionnée
+    // Initialisation
     window.addEventListener('load', function() {
+        updateTypeOptions();
         const event = new Event('change');
         document.getElementById('type_cycle').dispatchEvent(event);
     });
