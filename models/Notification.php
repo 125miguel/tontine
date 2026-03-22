@@ -37,6 +37,24 @@ class Notification {
     }
 
     /**
+     * Enregistrer une notification (sans envoyer d'email)
+     * Utilisé pour les envois manuels déjà traités
+     */
+    public function enregistrer($tontine_id, $destinataire, $sujet, $statut = 'envoye') {
+        $query = "INSERT INTO " . $this->table . " 
+                  (tontine_id, type, destinataire, sujet, statut) 
+                  VALUES (:tontine_id, 'email', :destinataire, :sujet, :statut)";
+        
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            'tontine_id' => $tontine_id,
+            'destinataire' => $destinataire,
+            'sujet' => $sujet,
+            'statut' => $statut
+        ]);
+    }
+
+    /**
      * Envoyer un rappel de réunion à tous les membres
      */
     public function rappelReunion($tontine_id, $date_reunion) {

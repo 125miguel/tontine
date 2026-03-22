@@ -39,8 +39,8 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #1E3A8A;        /* Bleu sombre */
-            --primary-light: #3B5BA5;   /* Bleu plus clair */
+            --primary: #1E3A8A;
+            --primary-light: #3B5BA5;
             --white: #FFFFFF;
             --bg-light: #F8FAFC;
             --text-dark: #0F172A;
@@ -85,95 +85,106 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 15px 15px 0 0 !important;
         }
         
+        /* Boutons principaux - Bleu sombre */
         .btn-primary {
             background: var(--primary);
             border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
         
         .btn-primary:hover {
             background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 58, 138, 0.3);
         }
         
-        .btn-success {
+        /* Boutons d'action - Vert */
+        .btn-action {
             background: var(--success);
             border: none;
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
         
-        .btn-success:hover {
+        .btn-action:hover {
             background: #0E9F6E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
         }
         
-        .btn-info {
-            background: var(--info);
-            border: none;
-            color: var(--white);
-        }
-        
-        .btn-info:hover {
-            background: #2563EB;
-        }
-        
-        .btn-warning {
-            background: var(--warning);
-            border: none;
-            color: var(--white);
-        }
-        
-        .btn-warning:hover {
-            background: #D97706;
-        }
-        
+        /* Boutons de danger */
         .btn-danger {
             background: var(--danger);
             border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
         }
         
         .btn-danger:hover {
             background: #DC2626;
+            transform: translateY(-2px);
         }
         
-        .btn-outline-danger {
-            border: 2px solid var(--danger);
-            color: var(--danger);
-            background: transparent;
-        }
-        
-        .btn-outline-danger:hover {
-            background: var(--danger);
+        /* Bouton Nouvelle tontine */
+        .btn-create {
+            background: var(--success);
+            border: none;
             color: var(--white);
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
         
-        .danger-zone {
-            border: 2px solid var(--danger);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 20px;
-            background: rgba(239, 68, 68, 0.05);
+        .btn-create:hover {
+            background: #0E9F6E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
         }
         
-        .danger-zone h5 {
-            color: var(--danger);
-            font-weight: 700;
-            margin-bottom: 15px;
+        /* Groupe de boutons */
+        .btn-group-custom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .btn-group-custom .btn {
+            padding: 6px 14px;
+            font-size: 13px;
         }
         
         .badge-type {
-            font-size: 12px;
-            padding: 5px 10px;
+            font-size: 11px;
+            padding: 4px 10px;
             border-radius: 20px;
             background: rgba(255,255,255,0.2);
             color: var(--white);
             margin-left: 10px;
         }
         
-        .badge-success {
+        .badge-auto {
             background: var(--success);
             color: var(--white);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
         }
         
-        .badge-secondary {
+        .badge-manuel {
             background: var(--text-light);
             color: var(--white);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
         }
         
         .alert-success {
@@ -200,11 +211,30 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border: none;
         }
         
-        .association-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 50px;
-            font-size: 14px;
+        .danger-zone {
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+        
+        .danger-zone p {
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .card-text {
+            margin-bottom: 15px;
+        }
+        
+        .card-text p {
+            margin-bottom: 8px;
+        }
+        
+        .info-stats {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -231,36 +261,40 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Messages de notification -->
         <?php if($supprime == 1): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i>  Tontine supprimée avec succès !
+                <i class="bi bi-check-circle-fill me-2"></i> Tontine supprimée avec succès !
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <?php if($error == 1): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>  Erreur lors de la suppression.
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Erreur lors de la suppression.
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <?php if($activites == 1): ?>
             <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <i class="bi bi-info-circle-fill me-2"></i>  Suppression impossible : cette tontine a déjà des activités.
+                <i class="bi bi-info-circle-fill me-2"></i> Suppression impossible : cette tontine a déjà des activités.
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-list-ul"></i> Mes tontines</h2>
-            <a href="create.php" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Nouvelle tontine
+            <div>
+                <h2 class="mb-0"><i class="bi bi-list-ul"></i> Mes tontines</h2>
+                <p class="text-muted mt-1">Gérez toutes vos tontines depuis cet espace</p>
+            </div>
+            <a href="create.php" class="btn-create">
+                <i class="bi bi-plus-circle me-2"></i>Nouvelle tontine
             </a>
         </div>
 
         <?php if(empty($tontines)): ?>
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Vous n'avez pas encore créé de tontine. 
-                <a href="create.php" class="alert-link">Créer votre première tontine</a>
+            <div class="alert alert-info text-center py-5">
+                <i class="bi bi-info-circle fs-1"></i>
+                <p class="mt-3">Vous n'avez pas encore créé de tontine.</p>
+                <a href="create.php" class="btn-action">Créer votre première tontine</a>
             </div>
         <?php else: ?>
             <div class="row">
@@ -271,44 +305,61 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="card h-100">
                             <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">
-                                        <?= htmlspecialchars($row['nom']) ?>
-                                        <span class="badge-type"><?= $row['type_tontine'] ?></span>
-                                    </h5>
+                                    <div>
+                                        <h5 class="mb-0">
+                                            <?= htmlspecialchars($row['nom']) ?>
+                                            <span class="badge-type"><?= ucfirst($row['type_tontine']) ?></span>
+                                        </h5>
+                                    </div>
                                     <?php if($row['mode_beneficiaire'] == 'auto'): ?>
-                                        <span class="badge badge-success"> Auto</span>
+                                        <span class="badge-auto"> Automatique</span>
                                     <?php else: ?>
-                                        <span class="badge badge-secondary"> Manuel</span>
+                                        <span class="badge-manuel"> Manuel</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <p class="card-text">
-                                    <strong> Montant:</strong> <?= number_format($row['montant_cotisation'], 0, ',', ' ') ?> FCFA<br>
-                                    <strong> Réunion:</strong> <?= htmlspecialchars($row['jour_reunion']) ?><br>
-                                    <strong> Membres:</strong> <?= $nbMembres ?><br>
-                                    <strong> Prochaine réunion:</strong> <?= date('d/m/Y', strtotime($row['prochaine_reunion'])) ?>
-                                </p>
+                                <!-- Informations -->
+                                <div class="info-stats">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Montant cotisation</small>
+                                            <strong><?= number_format($row['montant_cotisation'], 0, ',', ' ') ?> FCFA</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Membres</small>
+                                            <strong><?= $nbMembres ?></strong>
+                                        </div>
+                                        <div class="col-6 mt-2">
+                                            <small class="text-muted d-block">Jour de réunion</small>
+                                            <strong><?= htmlspecialchars($row['jour_reunion']) ?></strong>
+                                        </div>
+                                        <div class="col-6 mt-2">
+                                            <small class="text-muted d-block">Prochaine réunion</small>
+                                            <strong><?= date('d/m/Y', strtotime($row['prochaine_reunion'])) ?></strong>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                <!-- Actions rapides -->
-                                <div class="d-flex flex-wrap gap-2 mb-3">
-                                    <a href="voir_membres.php?id=<?= $row['id'] ?>" class="btn btn-primary btn-sm">
-                                        <i class="bi bi-people"></i> Membres
+                                <!-- Actions rapides - 2 couleurs seulement -->
+                                <div class="btn-group-custom">
+                                    <a href="voir_membres.php?id=<?= $row['id'] ?>" class="btn-primary">
+                                        <i class="bi bi-people me-1"></i> Membres
                                     </a>
-                                    <a href="ajouter_membre.php?id=<?= $row['id'] ?>" class="btn btn-success btn-sm">
-                                        <i class="bi bi-person-plus"></i> Ajouter
+                                    <a href="ajouter_membre.php?id=<?= $row['id'] ?>" class="btn-action">
+                                        <i class="bi bi-person-plus me-1"></i> Ajouter
                                     </a>
-                                    <a href="ouvrir_seance.php?id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
-                                        <i class="bi bi-play-circle"></i> Séance
+                                    <a href="ouvrir_seance.php?id=<?= $row['id'] ?>" class="btn-action">
+                                        <i class="bi bi-play-circle me-1"></i> Séance
                                     </a>
-                                    <a href="../parametres/amendes.php?tontine_id=<?= $row['id'] ?>" class="btn btn-warning btn-sm">
-                                        <i class="bi bi-exclamation-triangle"></i> Amendes
+                                    <a href="../parametres/amendes.php?tontine_id=<?= $row['id'] ?>" class="btn-primary">
+                                        <i class="bi bi-exclamation-triangle me-1"></i> Amendes
                                     </a>
-                                    <a href="../parametres/rappels.php?tontine_id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
-                                        <i class="bi bi-bell"></i> Rappels
+                                    <a href="../parametres/rappels.php?tontine_id=<?= $row['id'] ?>" class="btn-primary">
+                                        <i class="bi bi-bell me-1"></i> Rappels
                                     </a>
-                                    <a href="../etats/etats_administrateur.php?tontine_id=<?= $row['id'] ?>" class="btn btn-info btn-sm">
-                                        <i class="bi bi-file-text"></i> États
+                                    <a href="../etats/etats_administrateur.php?tontine_id=<?= $row['id'] ?>" class="btn-primary">
+                                        <i class="bi bi-file-text me-1"></i> États
                                     </a>
                                 </div>
 
@@ -318,17 +369,19 @@ $tontines = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 if(!$tontine->aDesActivites()):
                                 ?>
                                     <div class="danger-zone">
-                                        <p class="text-muted small mb-3">Cette tontine n'a aucune activité. Vous pouvez la supprimer définitivement.</p>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-info-circle"></i> Cette tontine n'a aucune activité. Vous pouvez la supprimer.
+                                        </p>
                                         <a href="supprimer_tontine.php?id=<?= $row['id'] ?>" 
-                                           class="btn btn-outline-danger btn-sm"
-                                           onclick="return confirm(' Êtes-vous sûr de vouloir supprimer définitivement cette tontine ?\nCette action est irréversible.')">
-                                            <i class="bi bi-trash"></i> Supprimer cette tontine
+                                           class="btn-danger btn-sm"
+                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cette tontine ?\nCette action est irréversible.')">
+                                            <i class="bi bi-trash me-1"></i> Supprimer
                                         </a>
                                     </div>
                                 <?php else: ?>
-                                    <div class="alert alert-warning mt-3 mb-0">
-                                        <i class="bi bi-info-circle"></i>
-                                        <strong>Suppression impossible :</strong> Cette tontine a déjà des activités.
+                                    <div class="alert alert-warning mt-3 mb-0 py-2">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <small>Suppression impossible : cette tontine a déjà des activités.</small>
                                     </div>
                                 <?php endif; ?>
                             </div>
