@@ -15,15 +15,15 @@ require_once __DIR__ . '/../../models/Tontine.php';
 $database = new Database();
 $db = $database->getConnection();
 
-// ========== 1. RÉCUPÉRER L'ID DE LA TONTINE DEPUIS L'URL ==========
+// ========== 1. RÉCUPÉRER L'ID DE LA TONTINE ==========
 $tontine_id = $_GET['tontine_id'] ?? 0;
 
 // ========== 2. TRAITEMENT DU REMBOURSEMENT ==========
 if(isset($_GET['rembourser'])) {
     $echeance_id = (int)$_GET['rembourser'];
     
-    // Récupérer l'échéance avec le tontine_id
-    $queryEch = "SELECT e.*, p.tontine_id 
+    // Récupérer l'échéance avec les infos du prêt
+    $queryEch = "SELECT e.*, p.tontine_id, p.id as pret_id
                  FROM echeances_prets e
                  JOIN prets p ON e.pret_id = p.id
                  WHERE e.id = :id";
@@ -39,25 +39,45 @@ if(isset($_GET['rembourser'])) {
                       statut = 'paye'
                   WHERE id = :id";
         $stmt = $db->prepare($query);
-        $stmt->execute(['id' => $echeance_id]);
+        $result = $stmt->execute(['id' => $echeance_id]);
         
-        // Mettre à jour le solde
-        $tontine_temp = new Tontine($db);
-        $tontine_temp->getById($echeance['tontine_id']);
-        $tontine_temp->updateSoldeCaisse($echeance['montant_du'], 'ajout');
-        $tontine_temp->enregistrerOperation(
-            'remboursement', 
-            $echeance['montant_du'], 
-            "Remboursement d'échéance n°" . $echeance['numero_echeance']
-        );
+        if($result) {
+            // Mettre à jour le solde
+            $tontine_temp = new Tontine($db);
+            $tontine_temp->getById($echeance['tontine_id']);
+            $tontine_temp->updateSoldeCaisse($echeance['montant_du'], 'ajout');
+            $tontine_temp->enregistrerOperation(
+                'remboursement', 
+                $echeance['montant_du'], 
+                "Remboursement d'échéance n°" . $echeance['numero_echeance']
+            );
+            
+            // Vérifier si toutes les échéances sont payées
+            $queryCheck = "SELECT COUNT(*) as total, 
+                                  SUM(CASE WHEN statut = 'paye' THEN 1 ELSE 0 END) as paye
+                           FROM echeances_prets 
+                           WHERE pret_id = :pid";
+            $stmtCheck = $db->prepare($queryCheck);
+            $stmtCheck->execute(['pid' => $echeance['pret_id']]);
+            $stats = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            // Si toutes les échéances sont payées, marquer le prêt comme remboursé
+            if($stats['total'] == $stats['paye']) {
+                $query = "UPDATE prets SET statut = 'rembourse' WHERE id = :id";
+                $stmt = $db->prepare($query);
+                $stmt->execute(['id' => $echeance['pret_id']]);
+                $_SESSION['success_message'] = "Prêt entièrement remboursé !";
+            } else {
+                $_SESSION['success_message'] = "Remboursement de " . number_format($echeance['montant_du'], 0, ',', ' ') . " F effectué !";
+            }
+        } else {
+            $_SESSION['error_message'] = "Erreur lors du remboursement";
+        }
         
-        $_SESSION['success_message'] = "Remboursement de " . number_format($echeance['montant_du'], 0, ',', ' ') . " F effectué !";
-        
-        // Utiliser le tontine_id récupéré depuis l'échéance
         $redirect_id = $echeance['tontine_id'];
     } else {
         $_SESSION['error_message'] = "Échéance non trouvée ou déjà payée";
-        $redirect_id = $tontine_id; // Utiliser celui de l'URL si échec
+        $redirect_id = $tontine_id;
     }
     
     // Redirection vers la page de gestion des prêts
@@ -278,6 +298,10 @@ $tontine->verifierPretsEnRetard();
         .pret-card .pret-body {
             padding: 15px;
         }
+        
+        .table td {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -455,37 +479,43 @@ $tontine->verifierPretsEnRetard();
                     <div class="card-header">
                         <i class="bi bi-check-circle"></i> Prêts remboursés (<?= count($prets_rembourses) ?>)
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <?php if(empty($prets_rembourses)): ?>
-                            <div class="text-center text-muted py-4">Aucun prêt remboursé</div>
+                            <div class="p-4 text-center text-muted">
+                                <i class="bi bi-inbox"></i> Aucun prêt remboursé
+                            </div>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table table-hover mb-0">
                                     <thead>
-                                        32;
+                                        <tr>
                                             <th>Membre</th>
-                                            <th>Montant emprunté</th>
-                                            <th>Intérêts payés</th>
-                                            <th>Total remboursé</th>
-                                            <th>Date de fin</th>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach($prets_rembourses as $pret): ?>
-                                                32;
-                                                    32;<?= htmlspecialchars($pret['prenom'] . ' ' . $pret['nom']) ?>32;
-                                                    32;<?= number_format($pret['montant_pret'], 0, ',', ' ') ?> F32;
-                                                    32;<?= number_format($pret['montant_total_du'] - $pret['montant_pret'], 0, ',', ' ') ?> F32;
-                                                    32;<?= number_format($pret['montant_total_du'], 0, ',', ' ') ?> F32;
-                                                    32;<?= date('d/m/Y', strtotime($pret['date_echeance'])) ?>32;
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                            <th class="text-center">Montant emprunté</th>
+                                            <th class="text-center">Intérêts payés</th>
+                                            <th class="text-center">Total remboursé</th>
+                                            <th class="text-center">Date de fin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach($prets_rembourses as $pret): ?>
+                                            <tr>
+                                                <td>
+                                                    <i class="bi bi-person-circle me-2" style="color: var(--primary);"></i>
+                                                    <strong><?= htmlspecialchars($pret['prenom'] . ' ' . $pret['nom']) ?></strong>
+                                                </td>
+                                                <td class="text-center"><?= number_format($pret['montant_pret'], 0, ',', ' ') ?> F</td>
+                                                <td class="text-center text-success"><?= number_format($pret['montant_total_du'] - $pret['montant_pret'], 0, ',', ' ') ?> F</td>
+                                                <td class="text-center"><strong><?= number_format($pret['montant_total_du'], 0, ',', ' ') ?> F</strong></td>
+                                                <td class="text-center"><?= date('d/m/Y', strtotime($pret['date_echeance'])) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
-                
+                                
                 <div class="text-center mt-4">
                     <a href="voir_membres.php?id=<?= $tontine_id ?>" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Retour

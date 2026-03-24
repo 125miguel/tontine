@@ -240,25 +240,6 @@ if(isset($_SESSION['user_id'])) {
             color: var(--white);
         }
         
-        .btn-secondary-custom {
-            background: transparent;
-            color: var(--primary);
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: 2px solid var(--primary);
-            display: inline-block;
-        }
-        
-        .btn-secondary-custom:hover {
-            background: var(--primary);
-            color: var(--white);
-            transform: translateY(-3px);
-            box-shadow: 0 20px 40px rgba(30, 58, 138, 0.2);
-        }
-        
         .hero-stats {
             display: flex;
             gap: 50px;
@@ -673,7 +654,7 @@ if(isset($_SESSION['user_id'])) {
                 flex-direction: column;
                 gap: 10px;
             }
-            .btn-primary-custom, .btn-secondary-custom {
+            .btn-primary-custom {
                 width: 100%;
                 text-align: center;
             }
@@ -808,15 +789,12 @@ if(isset($_SESSION['user_id'])) {
                     </h1>
                     <p>
                         Nous transformons un système communautaire historique
-                        en une solution digitale sécurisée,transparente et simple à utiliser. 
+                        en une solution digitale sécurisée, transparente et simple à utiliser. 
                         Rejoignez des milliers de présidents qui nous font confiance.
                     </p>
                     <div class="hero-buttons">
                         <a href="views/auth/register.php" class="btn-primary-custom">
                             <i class="fas fa-rocket me-2"></i>Commencer gratuitement
-                        </a>
-                        <a href="#fonctionnalites" class="btn-secondary-custom">
-                            <i class="fas fa-play me-2"></i>Voir la démo
                         </a>
                     </div>
                     <div class="hero-stats">
@@ -1104,8 +1082,8 @@ if(isset($_SESSION['user_id'])) {
             <div class="cta-box" data-aos="zoom-in">
                 <h2>Prêt à simplifier votre tontine ?</h2>
                 <p>Rejoignez des milliers de présidents qui nous font confiance</p>
-                <a href="#" class="btn-cta" onclick="alert('Vidéo de démo à venir !'); return false;">
-                    <i class="fas fa-play me-2"></i>Voir la démo
+                <a href="views/auth/register.php" class="btn-cta">
+                    <i class="fas fa-rocket me-2"></i>Commencer gratuitement
                 </a>
             </div>
         </div>

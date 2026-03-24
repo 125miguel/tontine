@@ -495,11 +495,11 @@ class Tontine {
     }
 
     /**
-     * Enregistrer un remboursement d'échéance
+     * Enregistrer un remboursement d'échéance (VERSION CORRIGÉE)
      */
     public function rembourserEcheance($echeance_id, $montant_paye) {
-        // Récupérer l'échéance
-        $query = "SELECT e.*, p.montant_total_du, p.montant_pret, p.taux_interet 
+        // Récupérer l'échéance avec les infos du prêt
+        $query = "SELECT e.*, p.id as pret_id, p.montant_total_du, p.statut as pret_statut
                   FROM echeances_prets e
                   JOIN prets p ON e.pret_id = p.id
                   WHERE e.id = :id";
@@ -511,32 +511,51 @@ class Tontine {
             return ['success' => false, 'message' => 'Échéance non trouvée'];
         }
         
+        // Vérifier si l'échéance n'est pas déjà payée
+        if($echeance['statut'] == 'paye') {
+            return ['success' => false, 'message' => 'Cette échéance a déjà été payée'];
+        }
+        
         // Mettre à jour l'échéance
         $query = "UPDATE echeances_prets 
-                  SET montant_paye = :paye, date_paiement = NOW(), statut = 'paye'
+                  SET montant_paye = :paye, 
+                      date_paiement = NOW(), 
+                      statut = 'paye'
                   WHERE id = :id";
         $stmt = $this->conn->prepare($query);
-        $stmt->execute([
+        $result = $stmt->execute([
             'paye' => $montant_paye,
             'id' => $echeance_id
         ]);
         
+        if(!$result) {
+            return ['success' => false, 'message' => 'Erreur lors du remboursement'];
+        }
+        
         // Ajouter le montant au solde de la caisse
         $this->updateSoldeCaisse($montant_paye, 'ajout');
-        $this->enregistrerOperation('remboursement', $montant_paye, "Remboursement d'échéance n°" . $echeance['numero_echeance']);
+        $this->enregistrerOperation(
+            'remboursement', 
+            $montant_paye, 
+            "Remboursement d'échéance n°" . $echeance['numero_echeance']
+        );
         
-        // Vérifier si toutes les échéances sont payées
-        $query = "SELECT COUNT(*) as total, 
-                         SUM(CASE WHEN statut = 'paye' THEN 1 ELSE 0 END) as paye
-                  FROM echeances_prets WHERE pret_id = :pid";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute(['pid' => $echeance['pret_id']]);
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Vérifier si TOUTES les échéances sont payées
+        $queryCheck = "SELECT COUNT(*) as total, 
+                              SUM(CASE WHEN statut = 'paye' THEN 1 ELSE 0 END) as paye
+                       FROM echeances_prets 
+                       WHERE pret_id = :pid";
+        $stmtCheck = $this->conn->prepare($queryCheck);
+        $stmtCheck->execute(['pid' => $echeance['pret_id']]);
+        $stats = $stmtCheck->fetch(PDO::FETCH_ASSOC);
         
+        // Si toutes les échéances sont payées, marquer le prêt comme remboursé
         if($stats['total'] == $stats['paye']) {
             $query = "UPDATE prets SET statut = 'rembourse' WHERE id = :id";
             $stmt = $this->conn->prepare($query);
             $stmt->execute(['id' => $echeance['pret_id']]);
+            
+            return ['success' => true, 'message' => 'Prêt entièrement remboursé !'];
         }
         
         return ['success' => true, 'message' => 'Remboursement enregistré'];
